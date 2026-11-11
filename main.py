@@ -20,7 +20,7 @@ RSS_SOURCES = {
     "CoinDesk (Crypto)": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     "TechCrunch (AI/Tech)": "https://techcrunch.com/feed/",
     "The Verge": "https://www.theverge.com/rss/index.xml",
-    "Nikkei Asia": "https://asia.nikkei.com/rss",
+    "Nikkei Asia": "https://info.asia.nikkei.com/rss",
     
     # Trong nước (Việt Nam)
     "VnExpress Thế Giới": "https://vnexpress.net/rss/the-gioi.rss",
@@ -31,22 +31,55 @@ RSS_SOURCES = {
 
 DATA_FILE = "news.json"
 
+# def fetch_raw_news():
+#     """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua"""
+#     raw_articles = []
+#     print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
+#     for source_name, url in RSS_SOURCES.items():
+#         try:
+#             feed = feedparser.parse(url)
+#             for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
+#                 raw_articles.append({
+#                     "source": source_name,
+#                     "title": entry.title,
+#                     "link": entry.link,
+#                     "published": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
+#                 })
+#         except Exception as e:
+#             print(f"⚠️ Lỗi cào nguồn {source_name}: {e}")
+#     return raw_articles
+
 def fetch_raw_news():
     """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua"""
     raw_articles = []
     print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
+    
+    # Kiểm tra xem RSS_SOURCES có tồn tại hoặc có dữ liệu không
+    if 'RSS_SOURCES' not in globals() or not RSS_SOURCES:
+        print("❌ Lỗi: Biến RSS_SOURCES chưa được định nghĩa hoặc đang trống!")
+        return []
+
     for source_name, url in RSS_SOURCES.items():
         try:
+            print(f"-> Đang kết nối tới [{source_name}]: {url}")
             feed = feedparser.parse(url)
+            
+            # Kiểm tra nếu feed bị lỗi phân tích (bozo)
+            if feed.get('bozo') == 1:
+                print(f"⚠️ Cảnh báo cấu trúc RSS tại {source_name}: {feed.get('bozo_exception')}")
+
+            print(f"   Tìm thấy {len(feed.entries)} bài viết.")
+            
             for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
                 raw_articles.append({
                     "source": source_name,
-                    "title": entry.title,
-                    "link": entry.link,
+                    "title": getattr(entry, 'title', 'Không có tiêu đề'),
+                    "link": getattr(entry, 'link', '#'),
                     "published": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
                 })
         except Exception as e:
-            print(f"⚠️ Lỗi cào nguồn {source_name}: {e}")
+            print(f"⚠️ Lỗi ngoại lệ khi cào nguồn {source_name}: {e}")
+            
     return raw_articles
 
 def generate_newsletter_with_gemini(raw_news):
@@ -133,7 +166,7 @@ DƯỚI ĐÂY LÀ DỮ LIỆU TIN TỨC THÔ ĐẦU VÀO:
 
     print("🤖 Đang gửi dữ liệu tới Gemini API để chọn lọc & biên tập...")
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.8-flash',
         contents=system_prompt
     )
     return response.text
