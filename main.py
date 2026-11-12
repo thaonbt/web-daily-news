@@ -5,10 +5,12 @@
 
 import os
 import json
+import time
 import feedparser
 import markdown
 from datetime import datetime
 from google import genai
+from google.genai.errors import ServerError, ClientError
 
 # 1. DANH SÁCH NGUỒN RSS (Ưu tiên Quốc tế > Việt Nam)
 RSS_SOURCES = {
@@ -21,7 +23,6 @@ RSS_SOURCES = {
     "TechCrunch (AI/Tech)": "https://techcrunch.com/feed/",
     "The Verge": "https://www.theverge.com/rss/index.xml",
     "Nikkei Asia": "https://info.asia.nikkei.com/rss",
-    
     # Trong nước (Việt Nam)
     "VnExpress Thế Giới": "https://vnexpress.net/rss/the-gioi.rss",
     "VnExpress Kinh Doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
@@ -31,46 +32,18 @@ RSS_SOURCES = {
 
 DATA_FILE = "news.json"
 
-# def fetch_raw_news():
-#     """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua"""
-#     raw_articles = []
-#     print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
-#     for source_name, url in RSS_SOURCES.items():
-#         try:
-#             feed = feedparser.parse(url)
-#             for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
-#                 raw_articles.append({
-#                     "source": source_name,
-#                     "title": entry.title,
-#                     "link": entry.link,
-#                     "published": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
-#                 })
-#         except Exception as e:
-#             print(f"⚠️ Lỗi cào nguồn {source_name}: {e}")
-#     return raw_articles
-
 def fetch_raw_news():
-    """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua"""
+    """Bóc tách tin thô từ các nguồn RSS trong 24h qua"""
     raw_articles = []
     print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
-    
-    # Kiểm tra xem RSS_SOURCES có tồn tại hoặc có dữ liệu không
-    if 'RSS_SOURCES' not in globals() or not RSS_SOURCES:
-        print("❌ Lỗi: Biến RSS_SOURCES chưa được định nghĩa hoặc đang trống!")
-        return []
-
     for source_name, url in RSS_SOURCES.items():
         try:
             print(f"-> Đang kết nối tới [{source_name}]: {url}")
             feed = feedparser.parse(url)
-            
-            # Kiểm tra nếu feed bị lỗi phân tích (bozo)
             if feed.get('bozo') == 1:
                 print(f"⚠️ Cảnh báo cấu trúc RSS tại {source_name}: {feed.get('bozo_exception')}")
-
             print(f"   Tìm thấy {len(feed.entries)} bài viết.")
-            
-            for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
+            for entry in feed.entries[:8]:
                 raw_articles.append({
                     "source": source_name,
                     "title": getattr(entry, 'title', 'Không có tiêu đề'),
@@ -79,19 +52,18 @@ def fetch_raw_news():
                 })
         except Exception as e:
             print(f"⚠️ Lỗi ngoại lệ khi cào nguồn {source_name}: {e}")
-            
     return raw_articles
 
 def generate_newsletter_with_gemini(raw_news):
-    """Truyền dữ liệu thô + Prompt chuẩn Biên tập viên cho Gemini API"""
+    """Gửi dữ liệu tới Gemini API với thời gian chờ giãn cách thông minh (Retry)"""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("Chưa cài đặt GEMINI_API_KEY trong Environment Variable!")
+        print("⚠️ Chưa cài đặt GEMINI_API_KEY trong Environment Variable!")
+        return None
 
     client = genai.Client(api_key=api_key)
     today_str = datetime.now().strftime("%d/%m/%Y")
 
-    # Đóng gói dữ liệu thô dạng văn bản gọn nhẹ
     raw_text_payload = ""
     for idx, item in enumerate(raw_news, 1):
         raw_text_payload += f"{idx}. [{item['source']}] {item['title']} | Link: {item['link']} | Ngày: {item['published']}\n"
@@ -164,15 +136,29 @@ DƯỚI ĐÂY LÀ DỮ LIỆU TIN TỨC THÔ ĐẦU VÀO:
 {raw_text_payload}
 """
 
-    print("🤖 Đang gửi dữ liệu tới Gemini API để chọn lọc & biên tập...")
-    response = client.models.generate_content(
-        model='gemini-3.8-flash',
-        contents=system_prompt
-    )
-    return response.text
+    max_retries = 3
+    delays = [30, 60, 120]  # Giãn cách thời gian chờ để vượt qua các đợt bận kéo dài
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🤖 Đang gửi dữ liệu tới Gemini API (Lần thử {attempt}/{max_retries})...")
+            response = client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=system_prompt
+            )
+            return response.text
+        except (ServerError, ClientError, Exception) as e:
+            print(f"⚠️ Gặp sự cố khi gọi Gemini: {e}")
+            if attempt < max_retries:
+                wait_time = delays[attempt - 1]
+                print(f"⏳ Server đang quá tải. Đang chờ {wait_time} giây trước khi tự động thử lại...")
+                time.sleep(wait_time)
+            else:
+                print("❌ Đã thử lại tối đa nhưng không thành công do quá tải.")
+                return None
 
 def save_to_history(markdown_content):
-    """Lưu bản tin hôm nay vào file lịch sử JSON"""
+    """Lưu bản tin hôm nay vào file lịch sử JSON (giữ tối đa 30 bản tin)"""
     today_str = datetime.now().strftime("%Y-%m-%d")
     history = []
     if os.path.exists(DATA_FILE):
@@ -182,21 +168,30 @@ def save_to_history(markdown_content):
         except Exception:
             history = []
             
-    # Thêm bản tin mới lên đầu danh sách
-    history.insert(0, {
-        "date": today_str,
-        "content": markdown_content
-    })
-    
-    # Giữ tối đa 30 bản tin gần nhất
+    history = [item for item in history if item.get("date") != today_str]
+    history.insert(0, {"date": today_str, "content": markdown_content})
     history = history[:30]
+    
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
+    print("✅ Đã cập nhật vào news.json thành công!")
 
-def build_html_page(markdown_content):
-    """Chuyển đổi Markdown thành trang Web tĩnh HTML với Tailwind CSS"""
+def get_latest_from_history():
+    """Lấy nội dung bản tin thành công gần nhất từ news.json khi AI gặp lỗi"""
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                history = json.load(f)
+                if history and len(history) > 0:
+                    return history[0].get("content")
+        except Exception:
+            pass
+    return None
+
+def build_html_page(markdown_content, is_stale=False):
+    """Render trang Web HTML tĩnh. Nếu lỗi, hiển thị bản tin cũ kèm banner thông báo nhẹ nhàng"""
     html_body = markdown.markdown(markdown_content, extensions=['fenced_code', 'tables'])
-    
+
     html_document = f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -214,6 +209,7 @@ def build_html_page(markdown_content):
         .prose a:hover {{ color: #1d4ed8; }}
         .prose strong {{ color: #0f172a; }}
         .prose hr {{ margin-top: 2rem; margin-bottom: 2rem; border-color: #cbd5e1; }}
+        .prose blockquote {{ background-color: #f8fafc; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.375rem; margin: 1rem 0; }}
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
@@ -222,6 +218,8 @@ def build_html_page(markdown_content):
             <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">AI Daily Newsletter</span>
             <p class="text-slate-400 text-xs mt-3">Tự động cập nhật 24/7 bởi Python & Gemini AI</p>
         </header>
+
+        {'<div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-3 shadow-sm"><span class="text-xl">⏳</span><p class="text-xs sm:text-sm text-amber-800 font-medium">Hệ thống AI đang bận tạm thời. Đang hiển thị bản tin tổng hợp gần nhất.</p></div>' if is_stale else ''}
 
         <main class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 prose max-w-none">
             {html_body}
@@ -236,13 +234,26 @@ def build_html_page(markdown_content):
 """
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_document)
-    print("✅ Đã tạo file index.html thành công!")
+    print("✅ Đã render xong file index.html!")
 
 if __name__ == "__main__":
     raw_news = fetch_raw_news()
     if raw_news:
         markdown_result = generate_newsletter_with_gemini(raw_news)
-        save_to_history(markdown_result)
-        build_html_page(markdown_result)
+        if markdown_result:
+            # Thành công: Lưu vào history và render bản tin mới
+            save_to_history(markdown_result)
+            build_html_page(markdown_result, is_stale=False)
+        else:
+            # Thất bại do API quá tải: Lấy bản tin cũ nhất từ history để hiển thị
+            print("⚠️ Lấy lại bản tin cũ từ lịch sử để hiển thị do gọi API thất bại.")
+            old_markdown = get_latest_from_history()
+            if old_markdown:
+                build_html_page(old_markdown, is_stale=True)
+            else:
+                print("❌ Không tìm thấy lịch sử bản tin nào.")
     else:
         print("❌ Không lấy được tin tức thô nào từ các nguồn RSS.")
+        old_markdown = get_latest_from_history()
+        if old_markdown:
+            build_html_page(old_markdown, is_stale=True)
