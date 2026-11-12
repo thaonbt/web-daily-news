@@ -4,8 +4,12 @@ on:
   push:
     branches: [ main ]
   schedule:
-    # Tự động chạy định kỳ mỗi ngày (ví dụ: chạy vào lúc 6h sáng UTC mỗi ngày)
-    - cron: '0 6 * * *'
+    # GitHub Actions chạy theo múi giờ UTC, 
+    # nên giờ Việt Nam (UTC+7) sẽ được quy đổi sang giờ UTC
+    # Lịch chạy mỗi ngày
+    #  06:00 sáng VN (tương ứng 23:00 UTC) 
+    #  13:00 chiều VN (tương ứng 06:00 UTC
+    - cron: '0 23,6 * * *'
 
 permissions:
   contents: write
