@@ -7,6 +7,7 @@ import os
 import json
 import time
 import feedparser
+import requests
 import markdown
 from datetime import datetime
 from google import genai
@@ -22,7 +23,7 @@ RSS_SOURCES = {
     "CoinDesk (Crypto)": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     "TechCrunch (AI/Tech)": "https://techcrunch.com/feed/",
     "The Verge": "https://www.theverge.com/rss/index.xml",
-    "Nikkei Asia": "https://info.asia.nikkei.com/rss",
+    "Nikkei Asia": "https://asia.nikkei.com/rss/feed/nar",
     # Trong nước (Việt Nam)
     "VnExpress Thế Giới": "https://vnexpress.net/rss/the-gioi.rss",
     "VnExpress Kinh Doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
@@ -33,17 +34,34 @@ RSS_SOURCES = {
 DATA_FILE = "news.json"
 
 def fetch_raw_news():
-    """Bóc tách tin thô từ các nguồn RSS trong 24h qua"""
+    """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua, khắc phục triệt để lỗi mã hóa us-ascii"""
     raw_articles = []
     print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
+    
+    if 'RSS_SOURCES' not in globals() or not RSS_SOURCES:
+        print("❌ Lỗi: Biến RSS_SOURCES chưa được định nghĩa hoặc đang trống!")
+        return []
+
     for source_name, url in RSS_SOURCES.items():
         try:
             print(f"-> Đang kết nối tới [{source_name}]: {url}")
-            feed = feedparser.parse(url)
+            
+            # Tải nội dung XML bằng requests và ép thẳng mã hóa về utf-8
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            response = requests.get(url, headers=headers, timeout=10)
+            response.encoding = 'utf-8' 
+            
+            # Parse nội dung từ chuỗi text đã được làm sạch mã hóa
+            feed = feedparser.parse(response.text)
+            
+            # Chỉ báo lỗi nếu là lỗi cấu trúc thực sự (bỏ qua cảnh báo chuyển đổi mã hóa)
             if feed.get('bozo') == 1:
-                print(f"⚠️ Cảnh báo cấu trúc RSS tại {source_name}: {feed.get('bozo_exception')}")
+                exc = feed.get('bozo_exception')
+                if not isinstance(exc, feedparser.CharacterEncodingOverride):
+                    print(f"⚠️ Cảnh báo cấu trúc RSS tại {source_name}: {exc}")
+                
             print(f"   Tìm thấy {len(feed.entries)} bài viết.")
-            for entry in feed.entries[:8]:
+            for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
                 raw_articles.append({
                     "source": source_name,
                     "title": getattr(entry, 'title', 'Không có tiêu đề'),
@@ -52,6 +70,7 @@ def fetch_raw_news():
                 })
         except Exception as e:
             print(f"⚠️ Lỗi ngoại lệ khi cào nguồn {source_name}: {e}")
+            
     return raw_articles
 
 def generate_newsletter_with_gemini(raw_news):
@@ -188,9 +207,31 @@ def get_latest_from_history():
             pass
     return None
 
-def build_html_page(markdown_content, is_stale=False):
-    """Render trang Web HTML tĩnh. Nếu lỗi, hiển thị bản tin cũ kèm banner thông báo nhẹ nhàng"""
+def build_html_page(markdown_content, is_fallback=False):
+    """Chuyển đổi Markdown thành trang Web tĩnh HTML với Tailwind CSS (có nút chuyển hướng nhanh tới Actions)"""
     html_body = markdown.markdown(markdown_content, extensions=['fenced_code', 'tables'])
+    
+    warning_banner = ""
+    if is_fallback:
+        warning_banner = """
+        <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 pt-0.5">
+                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-amber-700 font-medium">
+                        ⚠️ Hệ thống AI đang quá tải tạm thời. Bản tin hiển thị bên dưới là kho lưu trữ gần nhất.
+                    </p>
+                </div>
+            </div>
+            <a href="https://github.com/thaonbt/web-daily-news/actions/workflows/update_news.yml" target="_blank" class="whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-800 bg-amber-100 hover:bg-amber-200 transition shadow-xs">
+                🚀 Bấm để chạy lại ngay
+            </a>
+        </div>
+        """
 
     html_document = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -209,7 +250,6 @@ def build_html_page(markdown_content, is_stale=False):
         .prose a:hover {{ color: #1d4ed8; }}
         .prose strong {{ color: #0f172a; }}
         .prose hr {{ margin-top: 2rem; margin-bottom: 2rem; border-color: #cbd5e1; }}
-        .prose blockquote {{ background-color: #f8fafc; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.375rem; margin: 1rem 0; }}
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
@@ -219,7 +259,7 @@ def build_html_page(markdown_content, is_stale=False):
             <p class="text-slate-400 text-xs mt-3">Tự động cập nhật 24/7 bởi Python & Gemini AI</p>
         </header>
 
-        {'<div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-3 shadow-sm"><span class="text-xl">⏳</span><p class="text-xs sm:text-sm text-amber-800 font-medium">Hệ thống AI đang bận tạm thời. Đang hiển thị bản tin tổng hợp gần nhất.</p></div>' if is_stale else ''}
+        {warning_banner}
 
         <main class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 prose max-w-none">
             {html_body}
@@ -234,26 +274,89 @@ def build_html_page(markdown_content, is_stale=False):
 """
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_document)
-    print("✅ Đã render xong file index.html!")
+    print("✅ Đã tạo file index.html thành công!")
+
+def build_html_page(markdown_content, is_fallback=False):
+    """Chuyển đổi Markdown thành trang Web tĩnh HTML với Tailwind CSS (có hỗ trợ hiển thị cảnh báo lỗi)"""
+    html_body = markdown.markdown(markdown_content, extensions=['fenced_code', 'tables'])
+    
+    # Tạo banner cảnh báo nếu là bản tin lấy từ lịch sử do lỗi API
+    warning_banner = ""
+    if is_fallback:
+        warning_banner = """
+        <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-amber-700 font-medium">
+                        ⚠️ Hệ thống AI đang quá tải (Lỗi 503). Đang tạm thời hiển thị bản tin lưu trữ gần nhất. Bản tin mới sẽ được cập nhật ở lần chạy tiếp theo.
+                    </p>
+                </div>
+            </div>
+        </div>
+        """
+
+    html_document = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản Tin Tổng Hợp 24/7</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .prose h1 {{ font-size: 1.875rem; font-weight: 800; color: #1d4ed8; margin-bottom: 1.5rem; text-align: center; }}
+        .prose h2 {{ font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }}
+        .prose h3 {{ font-size: 1.125rem; font-weight: 600; color: #2563eb; margin-top: 1.25rem; margin-bottom: 0.5rem; }}
+        .prose ul {{ list-style-type: disc; padding-left: 1.25rem; margin-bottom: 1rem; }}
+        .prose li {{ margin-bottom: 0.5rem; }}
+        .prose a {{ color: #2563eb; text-decoration: underline; font-weight: 500; }}
+        .prose a:hover {{ color: #1d4ed8; }}
+        .prose strong {{ color: #0f172a; }}
+        .prose hr {{ margin-top: 2rem; margin-bottom: 2rem; border-color: #cbd5e1; }}
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <header class="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-slate-100 text-center">
+            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">AI Daily Newsletter</span>
+            <p class="text-slate-400 text-xs mt-3">Tự động cập nhật 24/7 bởi Python & Gemini AI</p>
+        </header>
+
+        {warning_banner}
+
+        <main class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 prose max-w-none">
+            {html_body}
+        </main>
+
+        <footer class="text-center text-slate-400 text-xs mt-10 mb-6">
+            <p>© {datetime.now().year} International & Local News Aggregator. Powered by GitHub Pages.</p>
+        </footer>
+    </div>
+</body>
+</html>
+"""
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_document)
+    print("✅ Đã tạo file index.html thành công!")
 
 if __name__ == "__main__":
     raw_news = fetch_raw_news()
     if raw_news:
         markdown_result = generate_newsletter_with_gemini(raw_news)
         if markdown_result:
-            # Thành công: Lưu vào history và render bản tin mới
             save_to_history(markdown_result)
-            build_html_page(markdown_result, is_stale=False)
+            build_html_page(markdown_result, is_fallback=False)
         else:
-            # Thất bại do API quá tải: Lấy bản tin cũ nhất từ history để hiển thị
-            print("⚠️ Lấy lại bản tin cũ từ lịch sử để hiển thị do gọi API thất bại.")
-            old_markdown = get_latest_from_history()
-            if old_markdown:
-                build_html_page(old_markdown, is_stale=True)
-            else:
-                print("❌ Không tìm thấy lịch sử bản tin nào.")
+            print("⚠️ Lấy bản tin cũ từ lịch sử do gọi API thất bại.")
+            # Lấy bản tin mới nhất trong lịch sử ra để hiển thị kèm cảnh báo
+            if os.path.exists(DATA_FILE):
+                with open(DATA_FILE, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                    if history:
+                        build_html_page(history[0]["content"], is_fallback=True)
     else:
         print("❌ Không lấy được tin tức thô nào từ các nguồn RSS.")
-        old_markdown = get_latest_from_history()
-        if old_markdown:
-            build_html_page(old_markdown, is_stale=True)

@@ -10,6 +10,8 @@ on:
     # 4:17 sáng VN = 22:17 UTC (của ngày hôm trước)
     # 22:17 trưa VN = 4:17 UTC (của ngày hôm đó)
     - cron: '17 22,4 * * *'
+    # Cho phép nhận tín hiệu kích hoạt từ bên ngoài qua API
+  workflow_dispatch: # Cho phép bật nút chạy thủ công
 
 permissions:
   contents: write
