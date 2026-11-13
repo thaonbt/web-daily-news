@@ -7,9 +7,9 @@ on:
     # GitHub Actions chạy theo múi giờ UTC, 
     # nên giờ Việt Nam (UTC+7) sẽ được quy đổi sang giờ UTC
     # Lịch chạy mỗi ngày
-    # 5:35 sáng VN = 22:35 UTC (của ngày hôm trước)
-    # 12:35 trưa VN = 5:35 UTC (của ngày hôm đó)
-    - cron: '35 22,5 * * *'
+    # 4:17 sáng VN = 22:17 UTC (của ngày hôm trước)
+    # 22:17 trưa VN = 4:17 UTC (của ngày hôm đó)
+    - cron: '17 22,4 * * *'
 
 permissions:
   contents: write
