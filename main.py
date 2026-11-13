@@ -15,28 +15,36 @@ from google.genai.errors import ServerError, ClientError
 
 # 1. DANH SÁCH NGUỒN RSS (Ưu tiên Quốc tế > Việt Nam)
 RSS_SOURCES = {
-    # Nước ngoài / Quốc tế
+    # --- QUỐC TẾ & TOÀN CẦU (Châu Âu, Châu Mỹ, Vĩ mô) ---
     "Reuters World": "https://news.google.com/rss/search?q=when:24h+site:reuters.com/world&ceid=US:en&hl=en-US&gl=US",
     "Reuters Business": "https://news.google.com/rss/search?q=when:24h+site:reuters.com/business&ceid=US:en&hl=en-US&gl=US",
-    "BBC World": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "BBC World": "https://feeds.bbci.co.uk/news/world/rss.xml",
     "Financial Times": "https://www.ft.com/rss/home",
-    "CoinDesk (Crypto)": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    "Bloomberg Markets": "https://news.google.com/rss/search?q=when:24h+site:bloomberg.com/markets&ceid=US:en&hl=en-US&gl=US",
+    "Nikkei Asia": "https://asia.nikkei.com/rss/feed/nar",
+
+    # --- CÔNG NGHỆ, AI & CRYPTO ---
     "TechCrunch (AI/Tech)": "https://techcrunch.com/feed/",
     "The Verge": "https://www.theverge.com/rss/index.xml",
-    "Nikkei Asia": "https://asia.nikkei.com/rss/feed/nar",
-    # Trong nước (Việt Nam)
+    "Ars Technica": "https://feeds.arstechnica.com/arstechnica/index",
+    "Hacker News": "https://news.ycombinator.com/rss",
+    "CoinDesk (Crypto)": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+
+    # --- VIỆT NAM (Kinh tế, Tài chính, Vĩ mô, Xã hội) ---
     "VnExpress Thế Giới": "https://vnexpress.net/rss/the-gioi.rss",
     "VnExpress Kinh Doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-    "VnExpress Khoa Học/Số Hóa": "https://vnexpress.net/rss/so-hoa.rss",
-    "Tuổi Trẻ Thời Sự": "https://tuoitre.vn/rss/thoi-su.rss"
+    "VnExpress Số Hóa": "https://vnexpress.net/rss/so-hoa.rss",
+    "Tuổi Trẻ Thời Sự": "https://tuoitre.vn/rss/thoi-su.rss",
+    "Cafef (Tài chính - Chứng khoán)": "https://cafef.vn/home.rss",
+    "VnEconomy (Kinh tế & Chính sách)": "https://vneconomy.vn/rss/home.rss"
 }
 
 DATA_FILE = "news.json"
 
 def fetch_raw_news():
-    """Bóc tách tin thô từ các nguồn RSS trong 24h-48h qua, khắc phục triệt để lỗi mã hóa us-ascii"""
+    """Bóc tách tin thô từ các nguồn RSS/Atom, xử lý triệt để lỗi cấu trúc"""
     raw_articles = []
-    print("🔄 Đang cào dữ liệu từ các nguồn RSS...")
+    print("🔄 Đang cào dữ liệu từ các nguồn...")
     
     if 'RSS_SOURCES' not in globals() or not RSS_SOURCES:
         print("❌ Lỗi: Biến RSS_SOURCES chưa được định nghĩa hoặc đang trống!")
@@ -46,27 +54,33 @@ def fetch_raw_news():
         try:
             print(f"-> Đang kết nối tới [{source_name}]: {url}")
             
-            # Tải nội dung XML bằng requests và ép thẳng mã hóa về utf-8
+            # Tải nội dung qua requests để kiểm soát tốt hơn các định dạng RSS/Atom
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
             response = requests.get(url, headers=headers, timeout=10)
             response.encoding = 'utf-8' 
             
-            # Parse nội dung từ chuỗi text đã được làm sạch mã hóa
+            # Parse nội dung văn bản thô
             feed = feedparser.parse(response.text)
             
-            # Chỉ báo lỗi nếu là lỗi cấu trúc thực sự (bỏ qua cảnh báo chuyển đổi mã hóa)
+            # BChỉ in cảnh báo nếu không phải là Hacker News hoặc cảnh báo không ảnh hưởng nghiêm trọng (như CharacterEncodingOverride)
             if feed.get('bozo') == 1:
                 exc = feed.get('bozo_exception')
-                if not isinstance(exc, feedparser.CharacterEncodingOverride):
-                    print(f"⚠️ Cảnh báo cấu trúc RSS tại {source_name}: {exc}")
+                if source_name != "Hacker News" and not isinstance(exc, feedparser.CharacterEncodingOverride):
+                    print(f"⚠️ Cảnh báo cấu trúc tại {source_name}: {exc}")
                 
             print(f"   Tìm thấy {len(feed.entries)} bài viết.")
-            for entry in feed.entries[:8]: # Lấy 8 bài mới nhất mỗi nguồn
+            
+            # Duyệt qua các bài viết và trích xuất an toàn
+            for entry in feed.get('entries', [])[:8]:
+                title = getattr(entry, 'title', None) or entry.get('title', 'Không có tiêu đề')
+                link = getattr(entry, 'link', None) or entry.get('link', '#')
+                published = entry.get('published', entry.get('updated', datetime.now().strftime("%Y-%m-%d")))
+                
                 raw_articles.append({
                     "source": source_name,
-                    "title": getattr(entry, 'title', 'Không có tiêu đề'),
-                    "link": getattr(entry, 'link', '#'),
-                    "published": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
+                    "title": title,
+                    "link": link,
+                    "published": published
                 })
         except Exception as e:
             print(f"⚠️ Lỗi ngoại lệ khi cào nguồn {source_name}: {e}")
@@ -96,16 +110,20 @@ Hãy đóng vai một Biên tập viên Tin tức Quốc tế & Trong nước ch
 - Lọc bỏ tin cũ: Tuyệt đối LOẠI BỎ các tin đã diễn ra quá lâu. Chỉ giữ lại tin trong khoảng 3 ngày đến tối đa 1 tuần NẾU ĐÓ LÀ SỰ KIỆN CỰC KỲ HOT / CÓ TÁC ĐỘNG LỚN đang tiếp diễn.
 
 ### 2. PHẠM VI NỘI DUNG & ĐỊA LÝ:
-Cần bao phủ các nhóm chủ đề theo 3 khu vực địa lý:
+Cần bao phủ các nhóm chủ đề theo 5 khu vực địa lý:
 - Thế giới
+- Châu Âu
+- Châu Mỹ
 - Châu Á
 - Việt Nam
 
-Tại mỗi khu vực địa lý, hãy quét 4 nhóm lĩnh vực trọng tâm:
-1. Kinh tế - Tài chính & Thị trường đầu tư (Vĩ mô, Cổ phiếu, Giá vàng, Thị trường Tiền mã hóa/Crypto)
-2. Chính trị - Xã hội
-3. Văn hóa - Công nghệ (AI, Xu hướng công nghệ mới, Đời sống văn hóa - nghệ thuật)
-4. Môi trường & Biến đổi khí hậu (Thiên tai, Đổi mới năng lượng, Chính sách khí hậu, Tín chỉ carbon)
+Tại mỗi khu vực địa lý, hãy quét 6 nhóm lĩnh vực trọng tâm:
+1. Kinh tế - Tài chính, Tiêu dùng & Đầu tư (Vĩ mô, Cổ phiếu, Giá vàng, Crypto, Chi tiêu/Đầu tư công, Công nghiệp, CPI, GDP)
+2. Chính trị, Pháp luật & Thuế (Chính sách nhà nước, Luật mới, Thuế, Quản lý vĩ mô)
+3. Công nghệ thông tin, Hạ tầng viễn thông & AI (Xu hướng công nghệ, Chuyển đổi số, Viễn thông, Trí tuệ nhân tạo)
+4. Việc làm, Xã hội & Đời sống văn hóa (Thị trường lao động, An sinh xã hội, Văn hóa - Nghệ thuật)
+5. Xuất Nhập Khẩu & Thương mại quốc tế (Chuỗi cung ứng, Hiệp định thương mại, Hải quan, Logistics)
+6. Môi trường & Biến đổi khí hậu (Thiên tai, Năng lượng sạch, Chính sách khí hậu, Tín chỉ carbon)
 
 ### 3. YÊU CẦU ĐỐI VỚI NỘI DUNG TIN TỨC:
 - Chọn lọc 2 - 3 tin tức thực sự nổi bật/quan trọng nhất cho mỗi nhóm lĩnh vực.
@@ -124,31 +142,45 @@ Trình bày kết quả chuẩn Markdown theo đúng cấu trúc sau (Không th�
 ---
 
 ## I. THẾ GIỚI
-### 1. Kinh tế - Tài chính & Thị trường đầu tư (Cổ phiếu, Vàng, Crypto)
+### 1. Kinh tế - Tài chính, Tiêu dùng & Đầu tư
 - **[Tiêu đề tin]**
   - Tóm tắt: ...
   - Nguồn: [Tên Nguồn](link_url)
 
-### 2. Chính trị - Xã hội
+### 2. Chính trị, Pháp luật & Thuế
 ...
-### 3. Văn hóa - Công nghệ
+### 3. Công nghệ thông tin, Hạ tầng viễn thông & AI
 ...
-### 4. Môi trường & Biến đổi khí hậu
+### 4. Việc làm, Xã hội & Đời sống văn hóa
+...
+### 5. Xuất Nhập Khẩu & Thương mại quốc tế
+...
+### 6. Môi trường & Biến đổi khí hậu
 ...
 
 ---
 
-## II. CHÂU Á
+## II. CHÂU ÂU
 (Cấu trúc tương tự)
 
 ---
 
-## III. VIỆT NAM
+## III. CHÂU MỸ
 (Cấu trúc tương tự)
 
 ---
 
-## IV. ĐÁNH GIÁ NỔI BẬT (QUAN ĐIỂM BIÊN TẬP)
+## IV. CHÂU Á
+(Cấu trúc tương tự)
+
+---
+
+## V. VIỆT NAM
+(Cấu trúc tương tự)
+
+---
+
+## VI. ĐÁNH GIÁ NỔI BẬT (QUAN ĐIỂM BIÊN TẬP)
 Tóm tắt ngắn gọn 3 - 4 dòng về bức tranh tổng thể và xu hướng dòng tiền/biến động đáng chú ý nhất của bản tin hôm nay.
 
 DƯỚI ĐÂY LÀ DỮ LIỆU TIN TỨC THÔ ĐẦU VÀO:
