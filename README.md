@@ -18,7 +18,6 @@ news-aggregator/
 ├── news.json                 # Historical archive of past newsletters (auto-generated, up to 30 days)
 ├── index.html                # Static web page displaying the latest newsletter (auto-generated)
 └── README.md                 # Project documentation
-
 ```
 
 *(Note: `news.json` and `index.html` are automatically generated and tracked by Git to preserve your newsletter history and serve the live site).*
@@ -53,7 +52,6 @@ The system runs completely autonomously on a scheduled cron job **twice daily** 
               │
               ▼
 [ 🌐 GitHub Pages Live Site Update ]
-
 ```
 
 ---
@@ -96,6 +94,28 @@ Visit [Google AI Studio](https://aistudio.google.com/) to generate your Gemini A
 
 ---
 
-## 📜 5. License & Attribution
+## ⚒️ 5. Install & Run locally
+
+### Install necessary libraries
+
+```bash
+pip install -r requirements.txt
+```
+
+OR
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Run site on localhost
+
+```bash
+python -m http.server 8000
+```
+
+---
+
+## 📜 6. License & Attribution
 
 Powered by Python, Google Gemini AI, and GitHub Pages. Built for personal automated daily reading.
