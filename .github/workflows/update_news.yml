@@ -19,6 +19,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Tự động hủy job nếu chạy quá 10 phút
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
