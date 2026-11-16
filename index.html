@@ -1,296 +1,68 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bản Tin Tổng Hợp 24/7</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .prose h1 { font-size: 1.875rem; font-weight: 800; color: #1d4ed8; margin-bottom: 1.5rem; text-align: center; }
-        .prose h2 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
-        .prose h3 { font-size: 1.125rem; font-weight: 600; color: #2563eb; margin-top: 1.25rem; margin-bottom: 0.5rem; }
-        .prose ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 1rem; }
-        .prose li { margin-bottom: 0.5rem; }
-        .prose a { color: #2563eb; text-decoration: underline; font-weight: 500; }
-        .prose a:hover { color: #1d4ed8; }
-        .prose strong { color: #0f172a; }
-        .prose hr { margin-top: 2rem; margin-bottom: 2rem; border-color: #cbd5e1; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <title>Bản tin hằng ngày</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+      --accent: #2563eb; --accent-bg: #dbeafe; --warn-bg: #fffbeb; --warn-border: #fbbf24; --warn-text: #92400e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent: #60a5fa; --accent-bg: #1e3a8a; --warn-bg: #3b2f0b; --warn-border: #b45309; --warn-text: #fde68a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.65;
+           font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .wrap { max-width: 56rem; margin: 0 auto; padding: 1.5rem 16px 3rem; }
+    header { text-align: center; margin-bottom: 1.25rem; }
+    .badge { display: inline-block; background: var(--accent-bg); color: var(--accent); font-size: .7rem;
+             font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .2rem .7rem; border-radius: 999px; }
+    #meta { color: var(--muted); font-size: .8rem; margin: .6rem 0 0; }
+
+    #tabs { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
+    #tabs button { font: inherit; font-size: .85rem; cursor: pointer; padding: .4rem .9rem; border-radius: 999px;
+                   border: 1px solid var(--border); background: var(--card); color: var(--text); }
+    #tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    #banner { display: none; background: var(--warn-bg); color: var(--warn-text);
+              border-left: 4px solid var(--warn-border); border-radius: 0 .5rem .5rem 0;
+              padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
+
+    main { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; }
+    main h1 { font-size: 1.6rem; color: var(--accent); text-align: center; margin: 0 0 1rem; }
+    main h2 { font-size: 1.35rem; margin: 2rem 0 .75rem; padding-bottom: .4rem; border-bottom: 2px solid var(--border); }
+    main h3 { font-size: 1.05rem; color: var(--accent); margin: 1.25rem 0 .5rem; }
+    main ul { padding-left: 1.25rem; margin: 0 0 1rem; }
+    main li { margin-bottom: .4rem; }
+    main ul ul { margin: .3rem 0 .6rem; list-style: circle; }
+    main a { color: var(--accent); text-underline-offset: 2px; }
+    main hr { border: 0; border-top: 1px solid var(--border); margin: 1.75rem 0; }
+    main pre { white-space: pre-wrap; word-break: break-word; }
+    footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 1.5rem; }
+    @media (max-width: 480px) { main { padding: 1rem; } main h1 { font-size: 1.3rem; } }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <header class="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-slate-100 text-center">
-            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">AI Daily Newsletter</span>
-            <p class="text-slate-400 text-xs mt-3">Tự động cập nhật 24/7 bởi Python & Gemini AI</p>
-        </header>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge">AI Daily Newsletter</span>
+      <p id="meta">Đang tải…</p>
+    </header>
 
-        
+    <div id="banner" role="status"></div>
+    <nav id="tabs" role="tablist" aria-label="Các bản tin"></nav>
+    <main id="content" aria-live="polite"></main>
 
-        <main class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 prose max-w-none">
-            <h1>BẢN TIN TỔNG HỢP NỔI BẬT 16/11/2026</h1>
-<hr />
-<h2>I. THẾ GIỚI</h2>
-<h3>1. Kinh tế - Tài chính, Tiêu dùng &amp; Đầu tư</h3>
-<ul>
-<li><strong>Giá dầu thế giới giảm trước dự báo dư thừa nguồn cung</strong></li>
-<li>Tóm tắt: Giá dầu thô toàn cầu ghi nhận xu hướng sụt giảm do các nhà phân tích dự báo thị trường sắp đối mặt với tình trạng dư cung trong các quý tiếp theo. Bối cảnh sản lượng từ các nước ngoài OPEC tăng kết hợp nhu cầu tiêu thụ công nghiệp yếu tại các nền kinh tế lớn là nguyên nhân then chốt. Diễn biến này dự kiến sẽ kéo giảm chi phí năng lượng toàn cầu nhưng tạo sức ép lên doanh thu của các quốc gia xuất khẩu dầu mỏ.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMipAFBVV95cUxNSXlabl9ocWtiOEZLcnc2SGNVSEh2bjltWURkWU1RSDVTejZWMEtNYTR4QW9sT19DQy05SVhHVmphTEtIQXdtVzlUS25Vdk1oS0hjdWZ0MHpUb01NQUp4dzlBcE55anIwR0hKVmhCUDRsT3V3ek9jTURVYkcySDNBM1B0RmJ3emdUaHpPVWpENENfZ2JGRHB3MlJuekVfUWlFa2lfUQ?oc=5">Reuters Business</a></li>
-<li><strong>Đồng USD tăng mạnh gây áp lực lên giá vàng và thị trường Crypto</strong></li>
-<li>Tóm tắt: Đồng USD tiếp tục đà tăng giá mạnh mẽ khi thị trường thận trọng chờ đợi các phát biểu chính sách tiền tệ từ phía đại diện Fed, khiến kim loại quý vàng chịu áp lực điều chỉnh giảm. Đồng thời, thị trường tiền mã hóa chứng kiến làn sóng thoái vốn lớn khi Bitcoin đối mặt nguy cơ thủng mốc 60.000 USD thay vì kịch bản lập đỉnh mới. Dòng tiền trú ẩn dịch chuyển mạnh về đồng bạc xanh đang đè nặng lên các tài sản tài chính có độ rủi ro cao.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMirAFBVV95cUxOR0w3QnNOYVBGYjdBMGJDeml5RExhSzMzaGVTUEQ2eEdLNHhHQzRoV2thNUo4TkVGYmNfc3NsSGpVVVF2OWxCZ21CNzBMSGs0S3NuZ2Rla1d4WTR0RGJwcllfYnZ6dlR5ZGZXa3dMakUxZmNDWFExYk9HNTkyLTN6aWF0MlRRbzN4aUJUVnVCMk1fdlpVN1B0bE1QM3dkaENDNEwzaHRORFFjVDYw?oc=5">Reuters World</a>, <a href="https://www.coindesk.com/markets/2026/11/16/bitcoin-s-biggest-bet-is-now-a-drop-below-usd60-000-not-a-rally-above-usd100-000">CoinDesk</a></li>
-<li><strong>Cơn sốt AI hạ nhiệt khiến các đợt phát hành IPO lớn thua lỗ</strong></li>
-<li>Tóm tắt: Các đợt IPO quy mô lớn nhất trong năm nay đang khiến các nhà đầu tư chịu thiệt hại nặng nề khi sự phấn khích xung quanh trí tuệ nhân tạo dần suy giảm. Định giá ban đầu bị đẩy lên quá cao cùng áp lực từ các thương vụ chào sàn tiếp theo đã kích hoạt tâm lý chốt lời và bán tháo. Tình trạng này khiến các quỹ đầu tư mạo hiểm trở nên thận trọng hơn trong việc định giá các startup công nghệ chuẩn bị niêm yết.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/7974acec-e378-4298-a1a7-2b16b00d8b32?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>2. Chính trị, Pháp luật &amp; Thuế</h3>
-<ul>
-<li><strong>Mỹ và Nga đồng thuận phản đối đàm phán hạn chế vũ khí tự hành</strong></li>
-<li>Tóm tắt: Hai cường quốc quân sự Mỹ và Nga đã thể hiện lập trường phản đối các cuộc đàm phán quốc tế nhằm thiết lập quy định mang tính ràng buộc đối với vũ khí sát thương tự động. Cả Washington và Moscow đều muốn bảo vệ quyền tự chủ phát triển các hệ thống tác chiến ứng dụng trí tuệ nhân tạo thế hệ mới. Động thái này dự kiến sẽ làm đình trệ nỗ lực của Liên Hợp Quốc trong việc kiểm soát chạy đua vũ trang bằng công nghệ.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMilwFBVV95cUxQUS1qMHhiR1ozLTIyenNWclR0dVZYNnBsSG01eHJkN0VMSGFnSnIxNjc5Q01HNFJma2JEazF2aWh2U3VlWnNwYm82NUFWZGM1ME5CVTZaTWxseU5nRmppbWVDalBPODdzVWJBUDNEemdteXhFbXNXdEVvNnZiZ1FSRWIyS1JNSVBFUkxGVEoyaUNZTDNHQndZ?oc=5">Reuters World</a></li>
-<li><strong>Căng thẳng ngoại giao đa phương giữa các lãnh đạo Mỹ, Trung Quốc và Nga</strong></li>
-<li>Tóm tắt: Các nhà lãnh đạo hàng đầu gồm ông Trump, ông Tập Cận Bình và ông Putin đang bước vào tuần lễ ngoại giao dày đặc với nhiều toan tính địa chính trị mang tính bước ngoặt. Những chia rẽ sâu sắc về chiến sự Ukraine, cán cân thương mại và an ninh chuỗi cung ứng là tâm điểm của các cuộc hội đàm. Kết quả của chuỗi hội nghị sẽ định hình trật tự thế giới và cục diện an ninh toàn cầu trong giai đoạn mới.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/5621d364-c767-4b40-a090-054042d1c49b?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>3. Công nghệ thông tin, Hạ tầng viễn thông &amp; AI</h3>
-<ul>
-<li><strong>Mỹ và các đồng minh ký kết thỏa thuận bảo vệ chuỗi cung ứng AI</strong></li>
-<li>Tóm tắt: Chính phủ Mỹ cùng các quốc gia đồng minh đã ký một thỏa thuận mang tính chiến lược nhằm bảo vệ chuỗi cung ứng trí tuệ nhân tạo và thiết bị bán dẫn cốt lõi khỏi sự phụ thuộc vào Trung Quốc. Thỏa thuận tập trung vào việc chia sẻ nguồn lực nghiên cứu, bảo mật phần cứng và thắt chặt kiểm soát chuyển giao công nghệ. Quyết định này sẽ đẩy nhanh quá trình tái cấu trúc ngành công nghiệp bán dẫn theo hướng phân cực rõ rệt.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/3c2197fc-9618-4838-91e6-522ce1a96a22?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>4. Việc làm, Xã hội &amp; Đời sống văn hóa</h3>
-<ul>
-<li><strong>Dịch bùng phát Ebola tại châu Phi vẫn ngoài tầm kiểm soát</strong></li>
-<li>Tóm tắt: Trung tâm Kiểm soát và Phòng ngừa Dịch bệnh châu Phi (Africa CDC) phát đi cảnh báo đợt bùng phát dịch bệnh Ebola vẫn chưa được kiểm soát sau 6 tháng kể từ khi công bố. Tình trạng thiếu hụt nguồn lực y tế, cơ sở hạ tầng yếu kém và phản ứng chậm trễ của cộng đồng quốc tế đã khiến dịch bệnh tiếp tục lây lan. Nguy cơ khủng hoảng nhân đạo gia tăng đang đe dọa trực tiếp đến đời sống xã hội và kinh tế của các quốc gia bị ảnh hưởng.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMi3AFBVV95cUxQU25FZUdud21zOGRwcHdZRTZESUh4dUY0ajFFSTBhSXQwUWo5SXFVNGtXb0ZBcF9HUnZJeklFQXd0c0h4MUtWandzSVhzeldqZXFEdGZ3d0poQU5KV1dtTWZWUzdCQk1tQW56ZTAwT0cwZklldnZ6Q3dHVHFDQWJmNjhQaHFYOGZOa1lnU1Y2dGNwVGRZaFBrTTlESzk0a1B6Z0JQU0swOTZCanZBanVRS0hnTFhrQlRsSHRRbXhfTlFRaXB4aUhGS2VDV09VVDFvZThlOUFQLTJiaDJx?oc=5">Reuters Business</a></li>
-<li><strong>Tốc độ di cư toàn cầu có xu hướng hạ nhiệt đáng kể</strong></li>
-<li>Tóm tắt: Dữ liệu quốc tế mới nhất cho thấy dòng người di cư lao động và tái định cư toàn cầu đang chứng kiến sự sụt giảm rõ rệt. Việc nhiều quốc gia phát triển siết chặt chính sách thị thực nhập cư cùng sự suy yếu của tăng trưởng kinh tế là nguyên nhân chính dẫn đến chuyển biến này. Xu hướng này được dự báo sẽ gây thiếu hụt nguồn lao động phổ thông và kỹ thuật tại các trung tâm kinh tế phát triển.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/12f76b96-6ef9-40fb-924f-60c348935a21?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>5. Xuất Nhập Khẩu &amp; Thương mại quốc tế</h3>
-<ul>
-<li><strong>Lực lượng Houthi siết chặt kiểm soát tuyến hàng hải trọng yếu Biển Đỏ</strong></li>
-<li>Tóm tắt: Việc các lực lượng vũ trang Yemen rút lui đã giúp phong trào Houthi củng cố quyền kiểm soát các cửa ngõ hàng hải huyết mạch qua Biển Đỏ. Động thái này gia tăng rủi ro an ninh cho các tuyến tàu chở dầu và hàng container lưu thông giữa châu Âu và châu Á. Tác động trực tiếp là đẩy chi phí bảo hiểm vận tải biển lên cao và buộc các hãng logistics phải đổi lộ trình đi vòng qua châu Phi.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/cqvg2xgyvnjpo?at_medium=RSS&amp;at_campaign=rss">BBC World</a></li>
-</ul>
-<h3>6. Môi trường &amp; Biến đổi khí hậu</h3>
-<ul>
-<li><strong>Nghiên cứu về sự thay đổi của các thảm họa cháy rừng toàn cầu</strong></li>
-<li>Tóm tắt: Báo cáo khoa học mới đã phân tích sự biến đổi của các vụ cháy rừng trên diện rộng trong bối cảnh các hoạt động công nghiệp thay đổi nhịp độ. Sự nóng lên toàn cầu cùng hiện tượng thời tiết cực đoan kéo dài được xác định là nhân tố làm trầm trọng thêm tần suất và quy mô tàn phá của các đám cháy. Kết quả nghiên cứu thúc giục các chính phủ phải điều chỉnh chiến lược ứng phó thảm họa thiên nhiên thích ứng với khí hậu mới.</li>
-<li>Nguồn: <a href="https://arstechnica.com/science/2026/11/how-the-worlds-fires-changed-while-humanity-hit-pause/">Ars Technica</a></li>
-</ul>
-<hr />
-<h2>II. CHÂU ÂU</h2>
-<h3>1. Kinh tế - Tài chính, Tiêu dùng &amp; Đầu tư</h3>
-<ul>
-<li><strong>Brussels đề xuất khoản vay 45 tỷ euro cho Ukraine dựa trên ngân sách EU</strong></li>
-<li>Tóm tắt: Ủy ban châu Âu chuẩn bị công bố đề xuất gói vay trị giá 45 tỷ euro dành cho Ukraine, sử dụng đòn bẩy bảo lãnh từ ngân sách chung của Liên minh châu Âu. Khoản tài chính này nhằm duy trì hoạt động của bộ máy nhà nước và củng cố năng lực quốc phòng của Kiev trong bối cảnh xung đột kéo dài. Đề xuất này có thể vấp phải sự phản đối từ một số quốc gia thành viên đang chịu áp lực thắt chặt chi tiêu công nội địa.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/2c9de06b-aa86-4275-b9f3-1276f8c20994?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>2. Chính trị, Pháp luật &amp; Thuế</h3>
-<ul>
-<li><strong>Estonia cáo buộc tình báo Nga phá hoại cơ sở sản xuất máy bay không người lái</strong></li>
-<li>Tóm tắt: Cơ quan chức năng Estonia đã chính thức cáo buộc các đặc vụ tình báo Nga đứng sau vụ phá hoại một nhà máy chế tạo UAV quan trọng trên lãnh thổ nước này. Vụ việc nằm trong chuỗi các hoạt động tác chiến hỗn hợp gia tăng nhằm làm suy yếu năng lực sản xuất quân sự hỗ trợ Ukraine của khối Baltic. Sự kiện này khiến căng thẳng an ninh giữa khối NATO và Nga tại sườn đông châu Âu leo thang đáng kể.</li>
-<li>Nguồn: <a href="https://vnexpress.net/estonia-cao-buoc-tinh-bao-nga-pha-hoai-nha-may-uav-5145100.html">VnExpress Thế Giới</a></li>
-<li><strong>Nghi vấn biển thủ ngân sách công trình phòng thủ tại Ukraine</strong></li>
-<li>Tóm tắt: Cơ quan chống tham nhũng Ukraine đang điều tra các dấu hiệu biển thủ khoản ngân sách lớn dùng để xây dựng tuyến công sự phòng vệ, liên quan đến lối sống xa hoa của một doanh nhân địa phương. Sự việc tạo làn sóng phẫn nộ trong dư luận khi nguồn lực phục vụ chiến trường bị lạm dụng nghiêm trọng. Vụ bê bối này gây sức ép lớn lên Kiev trong việc siết chặt minh bạch tài chính nhằm duy trì sự viện trợ từ phương Tây.</li>
-<li>Nguồn: <a href="https://cafef.vn/tien-xay-cong-trinh-chong-nga-bi-nghi-bien-thu-penthouse-co-ca-sau-cua-doanh-nhan-ukraine-gay-choang-188261116124709253.chn">Cafef</a></li>
-</ul>
-<h3>3. Công nghệ thông tin, Hạ tầng viễn thông &amp; AI</h3>
-<ul>
-<li><strong>Tổng thống Zelensky thúc giục Mỹ và Elon Musk gỡ hạn chế hệ thống Starlink</strong></li>
-<li>Tóm tắt: Tổng thống Ukraine đã đưa ra lời kêu gọi khẩn thiết tới chính phủ Mỹ và tỷ phú Elon Musk nhằm dỡ bỏ các giới hạn vận hành áp đặt lên mạng lưới vệ tinh quân sự Starlink. Bối cảnh tác chiến mặt đất phụ thuộc lớn vào kết nối mạng không gian khiến các lệnh hạn chế ảnh hưởng tiêu cực tới năng lực điều phối pháo binh và UAV. Quyết định từ phía Mỹ và SpaceX sẽ mang ý nghĩa sống còn đối với tình hình chiến tuyến trong mùa đông.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/c6m25zg88k45o?at_medium=RSS&amp;at_campaign=rss">BBC World</a></li>
-</ul>
-<h3>4. Việc làm, Xã hội &amp; Đời sống văn hóa</h3>
-<ul>
-<li><strong>Hoàng tử Harry có chuyến thăm bất ngờ tới Ukraine gặp gỡ cựu chiến binh</strong></li>
-<li>Tóm tắt: Hoàng tử Harry đã thực hiện chuyến thăm không báo trước tới Ukraine để trực tiếp gặp gỡ và ca ngợi tinh thần quả cảm của các thương bệnh binh và cựu chiến binh chiến tranh. Hoạt động này nhằm mục đích nâng cao nhận thức cộng đồng quốc tế về việc phục hồi chức năng thể chất và sức khỏe tâm thần cho người lính sau xung đột. Chuyến thăm nhận được sự quan tâm rộng rãi của truyền thông quốc tế và cổ vũ tinh thần cho xã hội Ukraine.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/c60evn992jq8o?at_medium=RSS&amp;at_campaign=rss">BBC World</a></li>
-</ul>
-<h3>5. Xuất Nhập Khẩu &amp; Thương mại quốc tế</h3>
-<ul>
-<li><em>(Chưa ghi nhận thông tin nổi bật trong ngày)</em></li>
-</ul>
-<h3>6. Môi trường &amp; Biến đổi khí hậu</h3>
-<ul>
-<li><em>(Chưa ghi nhận thông tin nổi bật trong ngày)</em></li>
-</ul>
-<hr />
-<h2>III. CHÂU MỸ</h2>
-<h3>1. Kinh tế - Tài chính, Tiêu dùng &amp; Đầu tư</h3>
-<ul>
-<li><strong>Intel bị cổ đông đệ đơn kiện tập thể sau khi giá cổ phiếu lao dốc 29%</strong></li>
-<li>Tóm tắt: Tập đoàn bán dẫn Intel đang đối mặt với vụ kiện tập thể từ các cổ đông sau cú sập giá cổ phiếu kỷ lục lên tới 29% bắt nguồn từ kết quả kinh doanh yếu kém và chi phí tái cơ cấu quá lớn. Nguyên đơn cáo buộc ban lãnh đạo che giấu tình trạng trì trệ của mảng sản xuất gia công chip và đưa ra các dự báo sai lệch. Vụ kiện gây ảnh hưởng tiêu cực tới uy tín của Intel trên thị trường tài chính và làm suy giảm niềm tin của giới đầu tư công nghệ.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMingFBVV95cUxQUHB2RXZCbUwzeDlxQl9pSlRsWi1UUFZ4TkNWb1JEOXlqZDJHUjFVU0pway1BWmw5dHRuclY1MGNPbERVQThaOUZQTDR3MTFqLTBJakxoYVBRNzVJZlFNOEhXakxrM0JzRllCbm8yYU9PbkJ0TEwyaWdiYU9EWng3cm11SjlhSGljbHg4WXV1NEV1bHBudWZPYmVtU0pBZw?oc=5">Reuters Business</a></li>
-<li><strong>Thị trường Mỹ ghi nhận dòng vốn đầu tư toàn cầu dồn dập đổ về</strong></li>
-<li>Tóm tắt: Phân tích tài chính quốc tế cho thấy xu hướng các quỹ đầu tư lớn trên thế giới đang dồn tỷ trọng vốn cao kỷ lục vào thị trường chứng khoán và trái phiếu Mỹ. Sự vượt trội về năng suất, sức mạnh lợi nhuận của các tập đoàn công nghệ và chính sách bảo hộ công nghiệp là các lực đẩy chủ đạo. Hệ quả là đồng USD tiếp tục giữ vị thế thống trị và thị trường chứng khoán phố Wall duy trì khoảng cách áp đảo so với phần còn lại của thế giới.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/1f1a2a9b-9429-4e4b-8606-7be8a1fd701e?syn-25a6b1a6=1">Financial Times</a></li>
-</ul>
-<h3>2. Chính trị, Pháp luật &amp; Thuế</h3>
-<ul>
-<li><strong>Bộ Tư pháp Mỹ phát cảnh báo tới Thượng nghị sĩ Elizabeth Warren</strong></li>
-<li>Tóm tắt: Bộ Tư pháp Mỹ (DOJ) đã phát đi tín hiệu cảnh báo Thượng nghị sĩ Elizabeth Warren về khả năng mở các cuộc điều tra mới có liên quan đến cựu Tổng thống Donald Trump. Diễn biến này xuất phát từ những tranh cãi pháp lý và đối đầu chính trị ngày càng gay gắt giữa hai đảng trong kỳ chuyển giao quyền lực. Động thái này dự kiến sẽ kích hoạt các cuộc tranh luận căng thẳng về tính độc lập của các cơ quan thực thi pháp luật liên bang.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMirwFBVV95cUxPMkZtWE5GWVdzVWtrMkxjX2hQbUdlNGlBYjVUVDc0V01nbzFFZnpGRzlmV0dnanB4cVJiSEM4Y2lpa2J0UXpZRzVUVGJNVnZGTy14MnNQbjluUHBoTFZWelpyWWsxdi1DX2RiWkFFMTVpZzlfMmtsVVBvRkNEVjlxcFFORU92bDY3djBTdnF4UXFfOXhRdEQ4SlpUQkhJQ0JDZFJNY2dYNVlxN1FZWVJr?oc=5">Reuters World</a></li>
-<li><strong>Phu nhân cố Tổng thống Haiti tham gia tranh cử tổng thống</strong></li>
-<li>Tóm tắt: Góa phụ của cựu Tổng thống Haiti bị ám sát Jovenel Moïse đã chính thức đăng ký tham gia cuộc bầu cử tổng thống sắp tới của quốc gia vùng Caribe này. Quyết định được đưa ra trong bối cảnh Haiti đang chìm trong bạo lực băng đảng và bất ổn thể chế kéo dài. Động thái này được kỳ vọng sẽ làm xáo trộn sâu sắc cán cân chính trị và tiến trình khôi phục trật tự dân sự tại quốc gia này.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/cmwy83432q1jo?at_medium=RSS&amp;at_campaign=rss">BBC World</a></li>
-</ul>
-<h3>3. Công nghệ thông tin, Hạ tầng viễn thông &amp; AI</h3>
-<ul>
-<li><strong>Chính quyền Trump lên kế hoạch công nhận Nvidia và OpenAI là "nhà vô địch quốc gia"</strong></li>
-<li>Tóm tắt: Chính quyền của ông Trump dự kiến sẽ định danh các doanh nghiệp công nghệ hàng đầu như Nvidia và OpenAI là các "nhà vô địch quốc gia" của Mỹ trong lĩnh vực AI. Mục tiêu của sáng kiến này là tập trung nguồn lực ưu tiên của chính phủ, bảo vệ sở hữu trí tuệ và đảm bảo ưu thế tuyệt đối của Mỹ trước Trung Quốc. Chính sách này sẽ tạo điều kiện cho các doanh nghiệp trên nhận được các hỗ trợ hành lang pháp lý và hợp đồng chính phủ khổng lồ.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMizwFBVV95cUxPbzFERGNkd2ZLODdReVZtV3pnNVdJT3RyNDdpbUZQRXZHUEgzbVYtZTBwelhfV1hRbVVfOGsxeDJURWd2bEJubFlFUjFXZC1HM2Z4U3l2TXVhTXR3OTFPZ2xUaDhOVlBDWF93dDE0V2lsOEI3bGFGWXlmbnVldjNCQkJKQlFNbDVfaWR6cGpJdktZWlJXcEdNQkZnWWsxSlZGX19tQTIxYW5NVWQxb2NQclEza1JHaHBma3lmaFNzQWRtQld0UkRwT01IZEY0eUk?oc=5">Reuters Business</a>, <a href="https://www.coindesk.com/markets/2026/11/16/trump-administration-to-name-nvidia-openai-and-several-others-as-u-s-ai-national-champions">CoinDesk</a></li>
-<li><strong>Tên lửa Vulcan phát nổ giữa không trung, phá hủy 40 vệ tinh của Amazon</strong></li>
-<li>Tóm tắt: Tên lửa Vulcan do liên doanh Boeing - Lockheed Martin chế tạo đã gặp sự cố nghiêm trọng và nổ tung giữa hành trình, phá hủy toàn bộ lô hàng 40 vệ tinh Internet băng rộng thuộc dự án Leo của Amazon. Thất bại kỹ thuật này giáng đòn nặng nề vào nỗ lực cạnh tranh trực tiếp với mạng lưới vệ tinh Starlink của SpaceX. Sự cố sẽ làm chậm tiến độ thương mại hóa dịch vụ Internet không gian của Amazon và gây thiệt hại lớn về tài chính cho các bên liên quan.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMi0gFBVV95cUxNRENJR2FvRjB1WmJfWk56alNqNHBwRHExSk0tdU91LV9wSUMzVm9PZEtRdHc0Y1JaMW44OVBJc3puTENpMXNBY3VmSVNjSTZIazlYRGh4aUxVaW9GdXNBamZla29sRzJnajdMdU1yQU9xekdPcUwyRXdaRzF4TXhiZXV6RDZIN21yVS15bGpNVUJFZUpnWU1ZTFJqbm94OXhjamR3SXFRV3F0YWZWSnA5ei1Gd2o4UW1PSnlrTnFtMENUb2V1VjVDc09XSFJNN0JaWXc?oc=5">Reuters Business</a>, <a href="https://www.theverge.com/science/1034006/vulcan-rocket-fails-destroying-40-amazon-leo-satellites">The Verge</a></li>
-<li><strong>Apple ra mắt ứng dụng và chương trình nghiên cứu công cụ AI y tế</strong></li>
-<li>Tóm tắt: Apple vừa chính thức triển khai ứng dụng mới nhằm theo dõi và nghiên cứu phương thức người tiêu dùng sử dụng trí tuệ nhân tạo trong việc quản lý sức khỏe cá nhân. Dự án nhằm thu thập dữ liệu lâm sàng thực tế để chuẩn hóa và nâng cao độ chính xác của các thuật toán chẩn đoán tự động trên các thiết bị đeo thông minh. Bước đi này thể hiện tham vọng mở rộng hệ sinh thái công nghệ y tế cá nhân hóa của Apple trước sự cạnh tranh từ các đối thủ lớn.</li>
-<li>Nguồn: <a href="https://techcrunch.com/2026/11/15/apple-launches-new-app-to-study-how-people-use-ai-for-health/">TechCrunch</a>, <a href="https://www.theverge.com/tech/1033355/apples-new-study-looks-to-improve-the-effectiveness-of-ai-health-tools">The Verge</a></li>
-</ul>
-<h3>4. Việc làm, Xã hội &amp; Đời sống văn hóa</h3>
-<ul>
-<li><strong>Cuộc chiến quyền lực và nỗ lực trở lại vị trí CEO Nvidia của Jensen Huang</strong></li>
-<li>Tóm tắt: Ông Jensen Huang đang tích cực vận động các đồng minh và thảo luận về khả năng quay trở lại ghế Tổng giám đốc Nvidia sau khi bị ép rời chức do các bê bối đời tư và quản trị. Tuy nhiên, giới chức trách và các nhà đầu tư lớn như Scott Bessent lại yêu cầu hội đồng quản trị phải tuyển dụng một CEO bên ngoài để tái cấu trúc toàn diện công ty. Diễn biến này khiến thị trường nhân sự cấp cao tại Thung lũng Silicon chấn động và gây bất định lớn cho tương lai tập đoàn.</li>
-<li>Nguồn: <a href="https://www.ft.com/content/45383d86-33c4-4d99-86e5-5e058d3567c1?syn-25a6b1a6=1">Financial Times</a>, <a href="https://vnexpress.net/chien-dich-van-dong-phuc-chuc-cho-jensen-huang-5145169.html">VnExpress Thế Giới</a></li>
-<li><strong>Trùm ma túy Mexico Felix Gallardo qua đời; Nhà báo điều tra bị sát hại</strong></li>
-<li>Tóm tắt: Ông trùm băng đảng khét tiếng Mexico Miguel Angel Felix Gallardo vừa qua đời ở tuổi 80, khép lại kỷ nguyên đen tối của trùm ma túy thế hệ đầu tại Guadalajara. Cùng thời điểm, một nhà báo điều tra chuyên về người mất tích tại Acapulco được phát hiện đã bị sát hại dã man. Chuỗi sự việc phản ánh tình trạng bạo lực băng đảng và sự nguy hiểm cùng cực đối với tự do báo chí vẫn là vấn nạn nhức nhối tại Mexico.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/c51k9nkwrndxo?at_medium=RSS&amp;at_campaign=rss">BBC World</a>, <a href="https://news.google.com/rss/articles/CBMiwwFBVV95cUxNa25HanoteThXd2lib2FtRlZvd3p4ZTd6VHJ6aWUyWENoTnVhbUJQbkV4UHV3aUN0eXdjWHYzNFdkTTRWeVIybWNjYmlRSHZucEl1NDZVQVFqNmVVMFpLZmkzTXhFbHNHeGRPUlJaaE9hdXRMSXVTV3BlZW92czhLNm9rclZ2RW1QQlAxMDBNMWpQaHlKLWthTTc3YUJ0azhvLU1nNEJROTJ6WGlOeDJsc2VkU2FZYU1ZdGx5VWs4enFzb2s?oc=5">Reuters Business</a></li>
-</ul>
-<h3>5. Xuất Nhập Khẩu &amp; Thương mại quốc tế</h3>
-<ul>
-<li><strong>Quốc hội Mỹ xúc tiến siết chặt quy định xuất khẩu chip AI sang Trung Quốc</strong></li>
-<li>Tóm tắt: Sau các bê bối rò rỉ công nghệ và nghi vấn hoạt động gián điệp xung quanh các đối tác của Nvidia, các nhà lập pháp Mỹ đang thúc đẩy ban hành luật siết chặt hơn nữa các hạn ngạch xuất khẩu chip tiên tiến. Dự luật nhằm triệt tiêu các kênh trung gian cung cấp vi xử lý bán dẫn cho doanh nghiệp quốc phòng và công nghệ Trung Quốc. Động thái này sẽ ảnh hưởng sâu sắc đến chuỗi cung ứng linh kiện và doanh thu thị trường quốc tế của các hãng bán dẫn Mỹ.</li>
-<li>Nguồn: <a href="https://www.theverge.com/ai-artificial-intelligence/1033984/congress-export-rules-ai-chips-china">The Verge</a></li>
-</ul>
-<h3>6. Môi trường &amp; Biến đổi khí hậu</h3>
-<ul>
-<li><strong>California phát cảnh báo khẩn cấp trước đợt sóng biển cao hơn 15 mét</strong></li>
-<li>Tóm tắt: Cơ quan thời tiết Mỹ đã ban bố cảnh báo khẩn tại bang California khi những đợt sóng lớn cao trên 15m ập vào đường bờ biển do ảnh hưởng của hệ thống bão đại dương mạnh. Nguy cơ ngập lụt ven biển, xói mòn nghiêm trọng và đe dọa cơ sở hạ tầng dân sinh đã buộc chính quyền địa phương phải sơ tán nhiều khu vực xung yếu. Hiện tượng thời tiết cực đoan này tiếp tục nhấn mạnh tác động tiêu cực của biến đổi khí hậu biển tới các đô thị ven Thái Bình Dương.</li>
-<li>Nguồn: <a href="https://vnexpress.net/song-cao-hon-15-m-ap-vao-bo-california-phat-canh-bao-5145061.html">VnExpress Thế Giới</a></li>
-</ul>
-<hr />
-<h2>IV. CHÂU Á</h2>
-<h3>1. Kinh tế - Tài chính, Tiêu dùng &amp; Đầu tư</h3>
-<ul>
-<li><strong>Kinh tế Trung Quốc suy giảm trên diện rộng do sản xuất và bán lẻ hạ nhiệt</strong></li>
-<li>Tóm tắt: Số liệu kinh tế mới nhất của Trung Quốc cho thấy cả sản lượng công nghiệp lẫn doanh số bán lẻ đều thấp hơn nhiều so với kỳ vọng của thị trường. Khủng hoảng bất động sản kéo dài kết hợp tâm lý thắt chặt hầu bao của người tiêu dùng là nguyên nhân kìm hãm đà phục hồi. Diễn biến này làm gia tăng sức ép buộc Bắc Kinh phải tung ra các gói kích thích tài khóa quy mô lớn hơn trong thời gian tới.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMinAFBVV95cUxNVzZkMk1FbkdXMWpRaWFDbU05ZmJGY19kTS1BT2FjRE96eGRGSzNGY1l4cnAxS2VGVEY5SjE2a0E3S3h2TnhXV1RlbE1BYUVielk3ZEN3TTlaX0pfZ2M1VnVpNmp0bVZOczJ0cThYaFFLUUtyVXB4OUZjSDI5c3VHWVk3Yk80SzhVdlJxcVlwNS1QZG9TZ0dMVExLMm4?oc=5">Reuters World</a>, <a href="https://asia.nikkei.com/economy/china-s-economy-softens-across-the-board-as-factory-output-spending-slow">Nikkei Asia</a></li>
-<li><strong>Kinh tế Nhật Bản bất ngờ suy giảm trong quý 3 vì lạm phát</strong></li>
-<li>Tóm tắt: Tăng trưởng GDP quý 3 của Nhật Bản bất ngờ sụt giảm 0,1% theo năm, thấp hơn đáng kể so với các dự báo trước đó của giới chuyên gia. Lạm phát chi phí sinh hoạt kéo dài đã bào mòn thu nhập thực tế, buộc các hộ gia đình phải cắt giảm chi tiêu tiêu dùng nội địa. Tình trạng kinh tế thu hẹp khiến Ngân hàng Trung ương Nhật Bản (BOJ) gặp thế tiến thoái lưỡng nan trong việc quyết định lộ trình tăng lãi suất.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMitgFBVV95cUxQeXFYOEg3cHpDTUFrTU9IRlQyWDlvRGVMVVN3VmxOelY3WnhCREJNdElKcEY5ZWpBSmhoalMzWDdaM0Y5Z0VXbkxVemg3YmdhSUg5UmYybnhFOHhWbVhXdjdoT1BUUGNQUFVtX2o1SkJRSnBJNEdLX081amJyUll6WHFiUk5SaWlkd2JGN0VnRFZKYi1WT1B0NzFUOUVKdkFfcTQ5RmdFeHdvcWI5c2pRaXF6MFBydw?oc=5">Reuters Business</a>, <a href="https://asia.nikkei.com/economy/japan-s-q3-gdp-drops-an-annualized-0.1-below-market-expectations">Nikkei Asia</a></li>
-<li><strong>GDP Thái Lan quý 3 tăng trưởng 2,9% nhờ lực đẩy xuất khẩu</strong></li>
-<li>Tóm tắt: Nền kinh tế Thái Lan ghi nhận mức tăng trưởng 2,9% trong quý 3, cải thiện đáng kể so với giai đoạn trước nhờ đà hồi phục mạnh mẽ của các ngành sản xuất hàng hóa xuất khẩu. Nhu cầu phục hồi tại các thị trường đối tác quốc tế đã bù đắp phần nào cho sự suy giảm sức mua trong nước. Kết quả khả quan này giúp chính phủ Thái Lan có thêm dư địa để củng cố các chính sách hỗ trợ phục hồi sau thiên tai và kích cầu du lịch.</li>
-<li>Nguồn: <a href="https://asia.nikkei.com/economy/thailand-s-gdp-growth-picks-up-to-2.9-in-q3-on-strong-exports">Nikkei Asia</a></li>
-</ul>
-<h3>2. Chính trị, Pháp luật &amp; Thuế</h3>
-<ul>
-<li><strong>Chủ tịch Trung Quốc Tập Cận Bình phô diễn ảnh hưởng ngoại giao tại APEC</strong></li>
-<li>Tóm tắt: Chủ tịch Trung Quốc Tập Cận Bình đang tận dụng các hội nghị thượng đỉnh khu vực APEC để khẳng định vị thế dẫn dắt thương mại tự do và mở rộng tầm ảnh hưởng của Bắc Kinh. Trong bối cảnh phương Tây có xu hướng gia tăng thuế quan bảo hộ, Trung Quốc chủ động ký kết và củng cố hợp tác với các quốc gia Nam Bán cầu. Hoạt động này thể hiện nỗ lực của Bắc Kinh trong việc thiết lập mạng lưới liên minh kinh tế đối trọng với các rào cản từ Mỹ.</li>
-<li>Nguồn: <a href="https://asia.nikkei.com/politics/international-relations/apec/apec-china-5-things-to-know-about-xi-jinping-s-diplomatic-show">Nikkei Asia</a></li>
-<li><strong>Megaspeed lên tiếng về cựu nhân sự bị nghi là gián điệp liên quan Nvidia</strong></li>
-<li>Tóm tắt: Doanh nghiệp Megaspeed xác nhận nhân sự tình nghi liên quan tới hoạt động gián điệp công nghệ cho Trung Quốc đã rời công ty từ cuối tháng 8/2025. Vụ việc bắt nguồn từ những cáo buộc xâm nhập dữ liệu và bảo mật chip bán dẫn nhạy cảm của Nvidia rò rỉ sang đối tác châu Á. Sự cố tiếp tục làm gia tăng các đợt thanh tra an ninh gắt gao nhắm vào các doanh nghiệp công nghệ trung gian tại khu vực châu Á.</li>
-<li>Nguồn: <a href="https://www.bbc.co.uk/news/articles/cmdx1vpprk9vo?at_medium=RSS&amp;at_campaign=rss">BBC World</a>, <a href="https://vnexpress.net/alice-huang-nghi-viec-tai-megaspeed-tu-cuoi-thang-8-2025-5144975.html">VnExpress Kinh Doanh</a></li>
-</ul>
-<h3>3. Công nghệ thông tin, Hạ tầng viễn thông &amp; AI</h3>
-<ul>
-<li><strong>SK Hynix chạy đua thi công 24/7 hoàn thiện siêu nhà máy chip bán dẫn</strong></li>
-<li>Tóm tắt: Hãng sản xuất bán dẫn Hàn Quốc SK Hynix đang huy động tối đa nguồn lực làm việc xuyên ngày đêm nhằm đẩy nhanh tiến độ khánh thành siêu tổ hợp sản xuất chip bộ nhớ băng thông cao (HBM). Nhu cầu bùng nổ chip phục vụ các trung tâm dữ liệu AI trên toàn cầu đã thúc đẩy hãng phải mở rộng công suất sản xuất khẩn cấp. Nhà máy mới được kỳ vọng sẽ củng cố vững chắc thị phần dẫn đầu của SK Hynix trong chuỗi cung ứng chip thế giới.</li>
-<li>Nguồn: <a href="https://asia.nikkei.com/business/tech/semiconductors/sk-hynix-in-24-7-race-to-complete-colossal-chip-plant">Nikkei Asia</a></li>
-<li><strong>Trung Quốc thúc đẩy chiến lược đào tạo thế hệ công dân làm chủ AI</strong></li>
-<li>Tóm tắt: Trung Quốc đang triển khai quy mô lớn chương trình cải cách giáo dục nhằm phổ cập và biến trí tuệ nhân tạo thành kỹ năng cốt lõi cho thế hệ trẻ (AI-native generation). Chính phủ nước này đầu tư mạnh vào hạ tầng tính toán trong trường học và tích hợp sâu giáo trình AI vào mọi cấp bậc phổ thông. Chiến lược dài hạn này nhằm tạo dựng nguồn nhân lực chất lượng cao giúp Trung Quốc duy trì năng lực cạnh tranh công nghệ cốt lõi với Mỹ.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMingFBVV95cUxNdVUtY3hKeno0SFNRY2lXTS1Ka29uakhJcGlqMmw5YldNRElPQWJPVjRWcU5IXzZRaDhPZ2F5MExxQjdGZEVsNXZNd1dvSnA3OEJoSVNlbzFxdHFRNWF3RUNSV21rOW12Z1NSdVROTXdfdU5hS1p6SHh2eFdyaXJUN1BJbk9YZWtGamowbWVhTV92SGNTMjhTVS1ZZHdtQQ?oc=5">Reuters World</a></li>
-<li><strong>Các công ty thuộc tập đoàn Toyota hợp tác phát triển phần mềm ô tô thông minh</strong></li>
-<li>Tóm tắt: Nhóm các công ty thành viên trong tập đoàn ô tô Toyota vừa thành lập liên minh nhằm tăng tốc nghiên cứu và làm chủ mảng phần mềm điều khiển ô tô tự hành thế hệ mới. Bước đi này nhằm chuẩn hóa hệ điều hành phương tiện, giảm bớt sự phụ thuộc vào các đối tác công nghệ độc lập nước ngoài. Động thái hợp lực sẽ giúp Toyota củng cố vị thế dẫn đầu trong kỷ nguyên chuyển dịch sang xe điện thông minh.</li>
-<li>Nguồn: <a href="https://asia.nikkei.com/business/automobiles/toyota-group-companies-team-up-to-move-upstream-in-auto-software">Nikkei Asia</a></li>
-</ul>
-<h3>4. Việc làm, Xã hội &amp; Đời sống văn hóa</h3>
-<ul>
-<li><strong>Cháy lớn cửa hàng xe máy ở Phuket (Thái Lan) khiến 11 người tử vong</strong></li>
-<li>Tóm tắt: Một vụ hỏa hoạn nghiêm trọng bùng phát tại dãy nhà phố kết hợp cửa hàng buôn bán xe máy tại đảo du lịch Phuket đã khiến ít nhất 11 người thiệt mạng và 16 người khác bị thương. Lực lượng cứu hỏa gặp nhiều khó khăn trong việc dập lửa do cửa hàng chứa nhiều vật liệu dễ cháy nổ và lối thoát hiểm bị hạn chế. Thảm kịch này gióng lên hồi chuông cảnh báo về tiêu chuẩn an toàn phòng cháy chữa cháy tại các đô thị du lịch nổi tiếng của Thái Lan.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMiqwFBVV95cUxOYmFrVGM0Zk5GUlV1akd3YXZucWd0YUlpem1zQkRVbUtYMGRmZkcwN0hvVlpmX3UxenJhZnBVdGZmTGtKZzhvZFU5cUhabTc0OGVHMVVjbGsxa1pCcnR5YzFqUHVlaDBtcmF1MWtaM3BTV3hCa1hYNTdQRTBkNXQ3LTk3eXhySGtoeDVVV3FDNDBfMTd4b0hOeHFFeWw5YXhZeDR4M1lRcnpxLUU?oc=5">Reuters World</a>, <a href="https://vnexpress.net/chay-cua-hang-xe-may-o-thai-lan-11-nguoi-chet-5145137.html">VnExpress Thế Giới</a></li>
-</ul>
-<h3>5. Xuất Nhập Khẩu &amp; Thương mại quốc tế</h3>
-<ul>
-<li><strong>Ngành công nghiệp xe tự lái Trung Quốc tìm phương án thay thế chip Nvidia</strong></li>
-<li>Tóm tắt: Các nhà sản xuất xe thông minh tại Trung Quốc đang tích cực xúc tiến kế hoạch dự phòng nhằm tìm kiếm nhà cung cấp thay thế trước nguy cơ Mỹ cắt đứt hoàn toàn nguồn chip tự hành của Nvidia. Sự bất ổn chính trị buộc các thương hiệu xe phải bắt tay với các nhà thiết kế vi xử lý nội địa để xây dựng hệ thống thay thế tương thích. Động thái này sẽ đẩy nhanh quá trình nội địa hóa chuỗi cung ứng linh kiện ô tô tại thị trường tỷ dân.</li>
-<li>Nguồn: <a href="https://techcrunch.com/2026/11/15/techcrunch-mobility-the-nvidia-backup-plan-for-chinas-self-driving-industry/">TechCrunch</a></li>
-</ul>
-<h3>6. Môi trường &amp; Biến đổi khí hậu</h3>
-<ul>
-<li><strong>Indonesia gửi lời xin lỗi vì khói mù cháy rừng lan sang các nước láng giềng</strong></li>
-<li>Tóm tắt: Tổng thống Indonesia đã chính thức gửi lời xin lỗi tới chính phủ và người dân Singapore, Malaysia do tình trạng khói mù từ các vụ cháy rừng trên đảo Sumatra và Kalimantan tràn qua biên giới. Tình trạng thời tiết hanh khô cùng nạn đốt rừng làm nương rẫy trái phép đã khiến ô nhiễm không khí tại Đông Nam Á chạm mức nguy hại. Sự kiện thúc đẩy các nước thành viên ASEAN phải họp khẩn để thống nhất cơ chế kiểm soát cháy rừng xuyên biên giới.</li>
-<li>Nguồn: <a href="https://news.google.com/rss/articles/CBMiygFBVV95cUxOcHo5U295dTNfU3R0MVRNU1FYbkVCc3FtbXgxV2hwOHF0dnptUExXdjFqU0NQR3lldzh3UTlubXpORUNvU3NSdml5T0t2a0M3LUs2ZXBWcGtWM2RRNUNNYVV0c1hScjU0STVyZkg4ZnJ4Skg3ZWhiWF9XWjNQUTZ6SnlPcDg5UmpBdHBuYnEzWjBNV1Q0cm1HaGRSaEpuRXVhZTdFcFNoX0ItcU9MSGdwNmxKU3J6TUUzTnJCbUVVMVNRcEc4czRDTV93?oc=5">Reuters Business</a></li>
-<li><strong>Trung Quốc chi gần 750 tỷ USD cải tạo lưới điện phục vụ năng lượng xanh</strong></li>
-<li>Tóm tắt: Chính phủ Trung Quốc đang tiến hành kế hoạch đầu tư gần 750 tỷ USD nhằm nâng cấp và hiện đại hóa toàn diện hệ thống truyền tải điện quốc gia. Mục đích trọng tâm là tăng cường khả năng tích hợp nguồn điện tái tạo từ các cánh đồng điện mặt trời và gió khổng lồ ở phía Tây về các trung tâm tiêu thụ ven biển. Dự án hạ tầng khổng lồ này đóng vai trò quyết định trong việc hiện thực hóa cam kết trung hòa carbon của Bắc Kinh.</li>
-<li>Nguồn: <a href="https://vnexpress.net/ly-do-trung-quoc-chi-gan-750-ty-usd-cai-to-luoi-dien-5143996.html">VnExpress Số Hóa</a></li>
-</ul>
-<hr />
-<h2>V. VIỆT NAM</h2>
-<h3>1. Kinh tế - Tài chính, Tiêu dùng &amp; Đầu tư</h3>
-<ul>
-<li><strong>Hòa Phát chi 650 tỷ đồng thành lập công ty năng lượng tái tạo</strong></li>
-<li>Tóm tắt: Tập đoàn Hòa Phát vừa thông qua nghị quyết đầu tư 650 tỷ đồng để thành lập công ty con hoạt động chuyên sâu trong mảng năng lượng tái tạo. Bước đi này nằm trong chiến lược dài hạn nhằm xanh hóa quy trình sản xuất thép và tự chủ một phần nguồn năng lượng sạch cho các khu liên hợp luyện kim. Động thái này giúp doanh nghiệp đáp ứng các tiêu chuẩn bảo vệ môi trường khắt khe khi xuất khẩu sang các thị trường quốc tế.</li>
-<li>Nguồn: <a href="https://tuoitre.vn/hoa-phat-bo-650-ti-dong-lap-cong-ty-nang-luong-tai-tao-100261116092432824.htm">Tuổi Trẻ</a></li>
-<li><strong>Lãi suất trái phiếu ngân hàng neo cao; Vietcombank ưu đãi giảm lãi suất vay</strong></li>
-<li>Tóm tắt: Mặt bằng lãi suất phát hành trái phiếu của các ngân hàng thương mại vẫn duy trì ở mức cao nhằm thu hút vốn trung - dài hạn, dù lãi suất tiết kiệm có chiều hướng hạ nhiệt. Trong khi đó, Vietcombank đã công bố chương trình giảm lãi suất cho vay hỗ trợ gần 25.000 khách hàng phục hồi sản xuất kinh doanh sau bão lũ. Các động thái này phản ánh sự điều chỉnh linh hoạt chính sách tiền tệ nhằm kích thích dòng vốn tín dụng chảy vào nền kinh tế thực.</li>
-<li>Nguồn: <a href="https://vnexpress.net/lai-suat-trai-phieu-ngan-hang-neo-cao-du-tiet-kiem-ha-nhiet-5144973.html">VnExpress Kinh Doanh</a>, <a href="https://vnexpress.net/gan-25-000-khach-hang-vietcombank-huong-uu-dai-giam-lai-suat-5145172.html">VnExpress Kinh Doanh</a></li>
-<li><strong>Doanh nghiệp bán lẻ đẩy mạnh đầu tư vào nghệ thuật, âm nhạc để kích cầu tiêu dùng</strong></li>
-<li>Tóm tắt: Nhiều chuỗi bán lẻ và trung tâm thương mại lớn tại Việt Nam đang có xu hướng chi mạnh tay đầu tư vào các dự án phim ảnh và sự kiện biểu diễn âm nhạc nhằm thu hút lượng khách hàng trẻ. Chiến lược này giúp thương hiệu gia tăng trải nghiệm mua sắm kết hợp giải trí, từ đó cải thiện doanh thu bán hàng cuối năm. Mô hình kinh doanh tích hợp nghệ thuật được dự báo sẽ trở thành xu hướng tiếp thị bán lẻ chủ đạo thời gian tới.</li>
-<li>Nguồn: <a href="https://vnexpress.net/nhieu-nha-ban-le-dau-tu-vao-phim-anh-am-nhac-de-hut-khach-5144933.html">VnExpress Kinh Doanh</a></li>
-</ul>
-<h3>2. Chính trị, Pháp luật &amp; Thuế</h3>
-<ul>
-<li><strong>TP.HCM đề xuất cho doanh nghiệp tiếp cận miễn phí dữ liệu mở huấn luyện AI</strong></li>
-<li>Tóm tắt: UBND TP.HCM vừa đề xuất cơ chế chính sách cho phép các doanh nghiệp công nghệ được sử dụng miễn phí kho dữ liệu mở của thành phố phục vụ việc nghiên cứu và huấn luyện các mô hình AI. Đề xuất nhằm thúc đẩy chuyển đổi số, tháo gỡ rào cản khan hiếm dữ liệu thực tế cho các startup công nghệ nội địa. Nếu được thông qua, chính sách này sẽ tạo động lực bứt phá đưa TP.HCM trở thành trung tâm đổi mới sáng tạo và AI hàng đầu khu vực.</li>
-<li>Nguồn: <a href="https://vnexpress.net/tp-hcm-de-xuat-cho-doanh-nghiep-dung-mien-phi-du-lieu-mo-de-huan-luyen-ai-5144898.html">VnExpress Số Hóa</a></li>
-<li><strong>Cơ quan chức năng xử lý nghiêm vi phạm trật tự an toàn giao thông và lừa đảo tài chính</strong></li>
-<li>Tóm tắt: Lực lượng cảnh sát giao thông đã xử phạt hành chính mức phạt kịch khung lên tới 120 triệu đồng đối với nhóm thanh thiếu niên có hành vi tụ tập lạng lách, gây rối trật tự công cộng. Song song đó, cơ quan điều tra vừa tống đạt lệnh bắt tạm giam đối tượng Huỳnh Thị Hồng Hạnh về các hành vi vi phạm pháp luật tài chính. Các biện pháp xử lý kiên quyết thể hiện nỗ lực của lực lượng chức năng trong việc bảo đảm pháp luật và trật tự an toàn xã hội.</li>
-<li>Nguồn: <a href="https://tuoitre.vn/phat-120-trieu-dong-voi-nhom-thanh-nien-lang-lach-tren-duong-10026111610480634.htm">Tuổi Trẻ</a>, <a href="https://cafef.vn/lenh-bat-tam-giam-huynh-thi-hong-hanh-sn-1984-188261116103117692.chn">Cafef</a></li>
-</ul>
-<h3>3. Công nghệ thông tin, Hạ tầng viễn thông &amp; AI</h3>
-<ul>
-<li><strong>Khai mạc chuỗi sự kiện Khoa học công nghệ quốc tế VinFuture 2026</strong></li>
-<li>Tóm tắt: Tuần lễ Khoa học công nghệ VinFuture 2026 đã chính thức khởi động tại Hà Nội, quy tụ hàng loạt nhà khoa học và chuyên gia công nghệ hàng đầu thế giới. Trọng tâm của sự kiện năm nay xoay quanh các giải pháp công nghệ phục vụ sức khỏe cộng đồng, năng lượng xanh và trí tuệ nhân tạo có đạo đức. Sự kiện góp phần nâng cao vị thế và uy tín của Việt Nam trên bản đồ khoa học - công nghệ toàn cầu.</li>
-<li>Nguồn: <a href="https://vnexpress.net/diem-nhan-tuan-le-khoa-hoc-cong-nghe-vinfuture-2026-5145164.html">VnExpress Số Hóa</a></li>
-<li><strong>Vietjet được vinh danh trong công tác phát triển dịch vụ số giao thông</strong></li>
-<li>Tóm tắt: Hãng hàng không Vietjet vừa được vinh danh tại diễn đàn công nghệ quốc gia nhờ những nỗ lực bứt phá trong việc chuyển đổi số và phát triển dịch vụ vé, thủ tục bay trực tuyến. Việc ứng dụng công nghệ số tự động hóa đã giúp tối ưu hóa vận hành, cắt giảm thời gian chờ đợi của hành khách tại sân bay. Đây là điểm sáng tiêu biểu cho quá trình số hóa hạ tầng giao thông vận tải hàng không tại Việt Nam.</li>
-<li>Nguồn: <a href="https://vnexpress.net/vietjet-duoc-vinh-danh-ve-phat-trien-dich-vu-so-giao-thong-5144979.html">VnExpress Kinh Doanh</a></li>
-</ul>
-<h3>4. Việc làm, Xã hội &amp; Đời sống văn hóa</h3>
-<ul>
-<li><strong>Lao động công nghệ nỗ lực chuyển nghề thích ứng trước làn sóng sa thải</strong></li>
-<li>Tóm tắt: Trước làn sóng cắt giảm nhân sự kéo dài trong ngành IT, nhiều kỹ sư công nghệ tại Việt Nam đang chủ động chuyển hướng làm tự do, học thêm kỹ năng mới hoặc đổi nghề sang các lĩnh vực phụ trợ. Tình trạng tái cấu trúc doanh nghiệp và sự thay thế của các công cụ tự động hóa AI đã thu hẹp đáng kể các vị trí lập trình viên sơ cấp. Xu hướng này đòi hỏi người lao động phải nhanh chóng đa dạng hóa chuyên môn để duy trì việc làm ổn định.</li>
-<li>Nguồn: <a href="https://vnexpress.net/dan-cong-nghe-xoay-xo-doi-nghe-sau-khi-mat-viec-5143533.html">VnExpress Số Hóa</a></li>
-<li><strong>Dàn thí sinh từ 53 quốc gia đổ về Việt Nam tham dự Miss Charm 2026</strong></li>
-<li>Tóm tắt: Đại diện nhan sắc đến từ 53 quốc gia và vùng lãnh thổ trên thế giới đã chính thức có mặt tại Việt Nam để bước vào hành trình chinh phục vương miện cuộc thi Miss Charm 2026. Sự kiện văn hóa sắc đẹp quốc tế này là cơ hội lớn để quảng bá hình ảnh đất nước, con người và tiềm năng du lịch Việt Nam tới bạn bè quốc tế. Cuộc thi dự kiến sẽ thúc đẩy ngành dịch vụ du lịch, khách sạn và truyền thông văn hóa trong nước.</li>
-<li>Nguồn: <a href="https://cafef.vn/dan-my-nhan-53-quoc-gia-hao-huc-den-viet-nam-tranh-vuong-mien-miss-charm-2026-18826111612071208.chn">Cafef</a></li>
-<li><strong>Quảng Trị bố trí hơn 370 tỷ đồng chỉnh trang các nghĩa trang liệt sĩ</strong></li>
-<li>Tóm tắt: Tỉnh Quảng Trị đã phê duyệt gói ngân sách hơn 370 tỷ đồng để thực hiện công tác trùng tu, nâng cấp và chỉnh trang khuôn viên nhiều nghĩa trang liệt sĩ trên địa bàn tỉnh. Hoạt động này thể hiện đạo lý đền ơn đáp nghĩa, tri ân sâu sắc đối với các anh hùng liệt sĩ đã ngã xuống vì độc lập dân tộc. Dự án có ý nghĩa xã hội và tâm linh to lớn, tạo điều kiện thuận lợi cho thân nhân liệt sĩ và đồng bào cả nước thăm viếng.</li>
-<li>Nguồn: <a href="https://tuoitre.vn/quang-tri-chi-hon-370-ti-dong-chinh-trang-nhieu-nghia-trang-liet-si-100261116104303113.htm">Tuổi Trẻ</a></li>
-</ul>
-<h3>5. Xuất Nhập Khẩu &amp; Thương mại quốc tế</h3>
-<ul>
-<li><strong>Tập đoàn T&amp;T đầu tư xây dựng trung tâm logistics kết nối đa phương thức</strong></li>
-<li>Tóm tắt: Tập đoàn T&amp;T vừa công bố dự án đầu tư xây dựng trung tâm logistics quy mô lớn với hạ tầng kết nối đa phương thức đường bộ, đường thủy và đường sắt. Dự án nhằm giải quyết điểm nghẽn về hạ tầng kho vận trung chuyển, rút ngắn thời gian và tối ưu hóa chi phí logistics cho các doanh nghiệp xuất nhập khẩu. Trung tâm vận tải này kỳ vọng sẽ thúc đẩy mạnh mẽ lưu thông hàng hóa liên vùng và gia tăng sức cạnh tranh cho hàng hóa xuất khẩu Việt Nam.</li>
-<li>Nguồn: <a href="https://vnexpress.net/t-t-group-dau-tu-trung-tam-logistics-ket-noi-da-phuong-thuc-5144964.html">VnExpress Kinh Doanh</a></li>
-</ul>
-<h3>6. Môi trường &amp; Biến đổi khí hậu</h3>
-<ul>
-<li><strong>Miền Bắc đón đợt không khí lạnh mới; Cà Mau chi 29 tỷ đồng xây bờ kè chống sạt lở</strong></li>
-<li>Tóm tắt: Trung tâm Khí tượng Thủy văn cảnh báo miền Bắc chuẩn bị đón đợt không khí lạnh tăng cường gây giảm nhiệt diện rộng. Cùng thời điểm, tỉnh Cà Mau đã phê duyệt khẩn cấp dự án 29 tỷ đồng xây kè kiên cố ngăn chặn sạt lở đe dọa cụm di tích và khu dân cư ven sông. Các địa phương đang tăng cường giải pháp ứng phó nhằm bảo vệ an toàn tính mạng, tài sản của người dân trước tác động của thời tiết cực đoan.</li>
-<li>Nguồn: <a href="https://tuoitre.vn/mien-bac-sap-don-khong-khi-lanh-lieu-co-mua-gio-ret-nhu-dot-vua-dien-ra-100261116104124271.htm">Tuổi Trẻ</a>, <a href="https://tuoitre.vn/ca-mau-se-lam-ke-29-ti-dong-chong-sat-lo-mieu-ba-thuy-long-100261116112745444.htm">Tuổi Trẻ</a></li>
-<li><strong>Đà Nẵng chuyển đổi hơn 6.200 m² "đất vàng" trung tâm thành công viên công cộng</strong></li>
-<li>Tóm tắt: Chính quyền TP. Đà Nẵng đã quyết định thu hồi khu đất đắc địa rộng hơn 6.200 m² trên tuyến đường trung tâm Bạch Đằng - Trần Phú để quy hoạch làm công viên cây xanh và bãi đỗ xe ngầm công cộng. Việc ưu tiên quỹ đất vàng cho mục đích công ích thay vì phát triển dự án bất động sản thương mại nhận được sự đồng thuận cao từ người dân. Động thái này giúp gia tăng diện tích không gian xanh và nâng cao chất lượng môi trường sống đô thị.</li>
-<li>Nguồn: <a href="https://tuoitre.vn/da-nang-danh-hon-6200m-dat-vang-bach-dang-tran-phu-lam-cong-vien-bai-do-xe-100261116103332289.htm">Tuổi Trẻ</a></li>
-</ul>
-<hr />
-<h2>VI. ĐÁNH GIÁ NỔI BẬT (QUAN ĐIỂM BIÊN TẬP)</h2>
-<p>Bản tin ngày 16/11/2026 phản ánh bức tranh toàn cầu với sự tái định hình sâu sắc của dòng tiền và trật tự công nghệ: sức mạnh của đồng USD duy trì ở mức cao đang đẩy các tài sản rủi ro (vàng, tiền mã hóa, cổ phiếu công nghệ) vào các đợt điều chỉnh mạnh. Trong khi Thung lũng Silicon chấn động trước cuộc khủng hoảng ghế lãnh đạo và nghi vấn gián điệp tại Nvidia, cuộc đua bán dẫn và AI vẫn diễn ra khốc liệt giữa Mỹ và các cường quốc châu Á. Tại Việt Nam, xu hướng xanh hóa công nghiệp và nỗ lực gỡ khó hạ tầng logistics, dữ liệu mở đang tạo nền tảng phục hồi bền vững cho nền kinh tế trước những biến số bất định từ thị trường quốc tế.</p>
-        </main>
+    <footer>Tổng hợp tự động bằng Python &amp; Gemini AI · Nội dung do AI tóm tắt, hãy kiểm tra lại qua link nguồn.</footer>
+  </div>
 
-        <footer class="text-center text-slate-400 text-xs mt-10 mb-6">
-            <p>© 2026 International & Local News Aggregator. Powered by GitHub Pages.</p>
-        </footer>
-    </div>
+  <script src="app.js"></script>
 </body>
 </html>
