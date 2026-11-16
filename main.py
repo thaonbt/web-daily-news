@@ -12,6 +12,14 @@ import markdown
 from datetime import datetime
 from google import genai
 from google.genai.errors import ServerError, ClientError
+from datetime import datetime, timedelta, timezone
+
+# Tạo múi giờ Việt Nam (UTC+7)
+tz_vn = timezone(timedelta(hours=7))
+now_vn = datetime.now(tz_vn)
+
+today_str_vn = now_vn.strftime("%d/%m/%Y")     # Dùng cho prompt Gemini (VD: 16/11/2026)
+today_date_str = now_vn.strftime("%Y-%m-%d")   # Dùng cho key JSON (VD: 2026-11-16)
 
 # 1. DANH SÁCH NGUỒN RSS (Ưu tiên Quốc tế > Việt Nam)
 RSS_SOURCES = {
@@ -209,8 +217,9 @@ DƯỚI ĐÂY LÀ DỮ LIỆU TIN TỨC THÔ ĐẦU VÀO:
                 return None
 
 def save_to_history(markdown_content):
-    """Lưu bản tin hôm nay vào file lịch sử JSON (giữ tối đa 30 bản tin)"""
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    tz_vn = timezone(timedelta(hours=7))
+    today_date_str = datetime.now(tz_vn).strftime("%Y-%m-%d")
+
     history = []
     if os.path.exists(DATA_FILE):
         try:
@@ -218,14 +227,21 @@ def save_to_history(markdown_content):
                 history = json.load(f)
         except Exception:
             history = []
-            
-    history = [item for item in history if item.get("date") != today_str]
-    history.insert(0, {"date": today_str, "content": markdown_content})
-    history = history[:30]
-    
+
+    # Loại bỏ nếu đã tồn tại ngày hôm nay để tránh trùng lặp
+    history = [item for item in history if item.get("date") != today_date_str]
+
+    # Chèn bản tin mới nhất lên đầu
+    history.insert(0, {"date": today_date_str, "content": markdown_content})
+
+    # Cắt danh sách tối đa giữ lại 2 bản tin gần nhất
+    # trang web luôn chỉ hiển thị bản tin mới nhất của ngày hôm nay 
+    # và giữ thêm đúng 1 ngày trước đó làm phương án dự phòng (fallback, tránh trang web bị trắng)
+    history = history[:2]
+
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
-    print("✅ Đã cập nhật vào news.json thành công!")
+    print(f"✅ Đã cập nhật vào news.json thành công cho ngày {today_date_str}!")
 
 def get_latest_from_history():
     """Lấy nội dung bản tin thành công gần nhất từ news.json khi AI gặp lỗi"""
