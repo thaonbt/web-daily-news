@@ -1,51 +1,71 @@
-name: Auto Update News and Deploy
+name: Update daily news
 
 on:
-  push:
-    branches: [ main ]
   schedule:
-    # GitHub Actions chạy theo múi giờ UTC, 
-    # nên giờ Việt Nam (UTC+7) sẽ được quy đổi sang giờ UTC
-    # Lịch chạy mỗi ngày
-    # 4:17 sáng VN = 22:17 UTC (của ngày hôm trước)
-    # 22:17 trưa VN = 4:17 UTC (của ngày hôm đó)
-    - cron: '17 22,4 * * *'
-    # Cho phép nhận tín hiệu kích hoạt từ bên ngoài qua API
-  workflow_dispatch: # Cho phép bật nút chạy thủ công
+    # GitHub Actions cron chạy theo UTC (có thể trễ vài phút đến vài chục phút khi tải cao).
+    - cron: '17 22 * * *'   # 05:17 ICT (UTC+7) - Bản sáng
+    - cron: '17 4 * * *'    # 11:17 ICT (UTC+7) - Bản trưa
+  workflow_dispatch:         # chạy tay từ tab Actions
+  # Cố ý KHÔNG có trigger `push`: mỗi lần push sẽ tốn quota Gemini free tier.
 
 permissions:
   contents: write
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10  # Tự động hủy job nếu chạy quá 10 phút
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+# Không cho 2 lần chạy song song (tránh đua nhau ghi news.json / push).
+concurrency:
+  group: update-news
+  cancel-in-progress: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24' # Update this value
+          cache: pip
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        run: pip install -r requirements.txt
 
-      - name: Run main.py to fetch and generate news
+      - name: Fetch RSS and summarize with Gemini
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Tuỳ chọn: Settings > Variables > Actions > GEMINI_MODELS = "model-chinh,model-du-phong"
+          GEMINI_MODELS: ${{ vars.GEMINI_MODELS }}
         run: python main.py
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      # Lưu news.json về main để lần chạy sau còn lịch sử (bản cũ dùng làm fallback).
+      # Chạy cả khi bước trên fail, vì lúc đó main.py đã ghi last_run=failed vào news.json.
+      - name: Commit news.json
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          if git diff --cached --quiet; then
+            echo "news.json không đổi"
+          else
+            git commit -m "chore(news): update $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+      # Chỉ publish đúng 3 file cần thiết (không đẩy main.py, workflow... lên site).
+      - name: Prepare site
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir site
+          cp index.html app.js news.json site/
+
+      - name: Deploy to GitHub Pages (gh-pages)
+        if: ${{ !cancelled() }}
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: ./site
           publish_branch: gh-pages
