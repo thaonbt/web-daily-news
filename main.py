@@ -12,6 +12,14 @@ import markdown
 from datetime import datetime
 from google import genai
 from google.genai.errors import ServerError, ClientError
+from datetime import datetime, timedelta, timezone
+
+# Tạo múi giờ Việt Nam (UTC+7)
+tz_vn = timezone(timedelta(hours=7))
+now_vn = datetime.now(tz_vn)
+
+today_str_vn = now_vn.strftime("%d/%m/%Y")     # Dùng cho prompt Gemini (VD: 16/11/2026)
+today_date_str = now_vn.strftime("%Y-%m-%d")   # Dùng cho key JSON (VD: 2026-11-16)
 
 # 1. DANH SÁCH NGUỒN RSS (Ưu tiên Quốc tế > Việt Nam)
 RSS_SOURCES = {
