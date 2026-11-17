@@ -1,6 +1,7 @@
 // Hiển thị news.json. HTML đã được render + sanitize ở main.py (markdown-it-py + nh3),
 // nên trang này không cần thư viện bên thứ ba. CSP trong index.html chỉ cho phép script từ 'self'.
 const STALE_AFTER_HOURS = 36;
+const SLOT_NAMES = { morning: "sáng", midday: "trưa" };
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.DateTimeFormat("vi-VN", {
   timeZone: "Asia/Ho_Chi_Minh", dateStyle: "short", timeStyle: "short",
@@ -12,28 +13,73 @@ function normalize(raw) {
   return { last_run: raw.last_run || null, editions: raw.editions || [] };
 }
 
-function renderInto(el, edition) {
-  if (edition.html) {
-    el.innerHTML = edition.html;
-    el.querySelectorAll("a").forEach((a) => {
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-    });
-  } else {
+// "2026-11-16" -> "16/11/2026"
+function dateVN(e) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(e.date || "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (e.date || "");
+}
+
+// Phiên: "16/11/2026 sáng" / "16/11/2026 trưa" (edition cũ không có slot: "Ngày 13/11/2026").
+function labelOf(e) {
+  const slot = SLOT_NAMES[e.slot];
+  return slot ? `${dateVN(e)} ${slot}` : `Ngày ${dateVN(e)}`;
+}
+
+// Một "tin" là <li> có <strong> (tiêu đề) và <ul> lồng bên trong (Tóm tắt, Nguồn).
+function storyItems(root) {
+  return [...root.querySelectorAll("li")].filter(
+    (li) => li.querySelector(":scope > strong") && li.querySelector(":scope > ul"),
+  );
+}
+
+function hrefsOf(node) {
+  return [...node.querySelectorAll("a[href]")].map((a) => a.getAttribute("href").split("#")[0]);
+}
+
+// Làm mờ tin đã xuất hiện ở bản trước: coi là cùng một tin khi dùng chung ít nhất một link nguồn.
+// Trả về {fresh, seen} hoặc null nếu không có bản trước để so sánh.
+function markSeen(el, previous) {
+  if (!previous || !previous.html) return null;
+  const prevDoc = new DOMParser().parseFromString(previous.html, "text/html"); // không thực thi script
+  const prevLinks = new Set(hrefsOf(prevDoc));
+  let seen = 0;
+  const stories = storyItems(el);
+  for (const li of stories) {
+    if (!hrefsOf(li).some((h) => prevLinks.has(h))) continue;
+    li.classList.add("seen");
+    const badge = document.createElement("span");
+    badge.className = "seen-badge";
+    badge.textContent = "Đã có ở bản trước";
+    li.querySelector(":scope > strong").after(badge);
+    seen += 1;
+  }
+  return { fresh: stories.length - seen, seen };
+}
+
+function renderInto(el, edition, previous) {
+  const stats = $("stats");
+  stats.textContent = "";
+  if (!edition.html) {
     // Edition chưa có html (chưa qua main.py mới): hiện markdown thô bằng textContent, không chèn HTML.
     const pre = document.createElement("pre");
     pre.textContent = edition.content || "";
     el.replaceChildren(pre);
+    return;
+  }
+  el.innerHTML = edition.html;
+  el.querySelectorAll("a").forEach((a) => {
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+  });
+  const result = markSeen(el, previous);
+  if (result) {
+    stats.textContent = `${result.fresh} tin mới · ${result.seen} tin đã có ở bản trước (${labelOf(previous)})`;
   }
 }
 
-function labelOf(e) {
-  const when = e.generated_at ? fmt.format(new Date(e.generated_at)) : e.date;
-  return e.label ? `${e.label} · ${when}` : `Ngày ${e.date}`;
-}
-
+// editions[0] là bản mới nhất; bản "trước" của editions[i] là editions[i + 1].
 function show(editions, idx, tabs) {
-  renderInto($("content"), editions[idx]);
+  renderInto($("content"), editions[idx], editions[idx + 1]);
   tabs.forEach((b, i) => b.setAttribute("aria-selected", String(i === idx)));
 }
 
@@ -67,7 +113,7 @@ async function init() {
     ? `Cập nhật lần cuối: ${fmt.format(new Date(latest.generated_at))} (giờ Việt Nam)`
     : `Bản tin ngày ${latest.date}`;
 
-  // Banner: lần chạy gần nhất lỗi -> đang hiện bản cũ; hoặc dữ liệu quá cũ (Actions ngừng chạy).
+  // Banner: lần chạy gần nhất lỗi -> đang hiện bản cũ; hoặc dữ liệu quá cũ (trigger ngừng chạy).
   if (last_run && last_run.status === "failed") {
     setBanner(`Lần cập nhật gần nhất (${fmt.format(new Date(last_run.at))}) không thành công. ` +
               `Đang hiển thị bản tin gần nhất còn lưu.`);

@@ -25,6 +25,8 @@
     .badge { display: inline-block; background: var(--accent-bg); color: var(--accent); font-size: .7rem;
              font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .2rem .7rem; border-radius: 999px; }
     #meta { color: var(--muted); font-size: .8rem; margin: .6rem 0 0; }
+    #stats { color: var(--muted); font-size: .8rem; margin: .25rem 0 0; }
+    #stats:empty { display: none; }
 
     #tabs { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
     #tabs button { font: inherit; font-size: .85rem; cursor: pointer; padding: .4rem .9rem; border-radius: 999px;
@@ -45,6 +47,11 @@
     main a { color: var(--accent); text-underline-offset: 2px; }
     main hr { border: 0; border-top: 1px solid var(--border); margin: 1.75rem 0; }
     main pre { white-space: pre-wrap; word-break: break-word; }
+    /* Tin đã có ở bản trước: chuyển sang màu muted (giữ độ tương phản đọc được) thay vì giảm opacity. */
+    main li.seen, main li.seen > strong, main li.seen a { color: var(--muted); }
+    main li.seen > strong { font-weight: 500; }
+    .seen-badge { display: inline-block; margin-left: .5rem; padding: .05rem .5rem; border-radius: 999px;
+                  background: var(--border); color: var(--muted); font-size: .7rem; font-weight: 600; vertical-align: middle; }
     footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 1.5rem; }
     @media (max-width: 480px) { main { padding: 1rem; } main h1 { font-size: 1.3rem; } }
   </style>
@@ -54,6 +61,7 @@
     <header>
       <span class="badge">AI Daily Newsletter</span>
       <p id="meta">Đang tải…</p>
+      <p id="stats"></p>
     </header>
 
     <div id="banner" role="status"></div>

@@ -37,7 +37,7 @@ from markdown_it import MarkdownIt
 # Cấu hình
 # --------------------------------------------------------------------------- #
 TZ_VN = timezone(timedelta(hours=7))
-DATA_FILE = Path(__file__).resolve().parent / "news.json"
+DATA_FILE = Path(__file__).resolve().parent / "site" / "news.json"   # thư mục site/ được Cloudflare phục vụ
 
 MAX_EDITIONS = 2          # chỉ giữ 2 edition mới nhất trong news.json
 MAX_AGE_HOURS = 36        # bỏ bài RSS cũ hơn mốc này (nếu feed có ngày đăng)
@@ -58,12 +58,15 @@ MODELS = [
 RETRY_DELAYS = [20, 60, 120]                 # giây, cho mỗi model
 RETRYABLE_CODES = {429, 500, 502, 503, 504}  # lỗi tạm thời -> retry; 400/401/403/404 -> không
 
-# Hai khung giờ chạy (khớp cron trong workflow). Chỉ dùng để đặt ID/nhãn edition:
-# chạy lại cùng khung giờ trong cùng ngày sẽ GHI ĐÈ edition đó, không tạo thêm bản mới.
+# Hai phiên (session) mỗi ngày: sáng và trưa. Edition id = ngày + phiên; chạy lại cùng phiên trong
+# cùng ngày sẽ GHI ĐÈ edition đó. Phiên ưu tiên lấy từ biến môi trường SLOT (do trigger truyền vào, nên
+# không bị sai khi run trễ); nếu không có thì suy ra từ giờ Việt Nam theo SLOTS bên dưới.
 SLOTS = (
     (6, "morning", "Bản sáng"),   # giờ VN < 6h
     (24, "midday", "Bản trưa"),   # còn lại
 )
+
+SESSION_NAMES = {"morning": "SÁNG", "midday": "TRƯA"}  # dùng trong tiêu đề bản tin
 
 RSS_SOURCES = {
     # --- QUỐC TẾ & TOÀN CẦU ---
@@ -221,8 +224,9 @@ Mỗi khu vực xét 6 lĩnh vực:
 - KHÔNG tự viết URL. Hệ thống sẽ tự thay mã bằng link thật.
 
 ### 5. Định dạng đầu ra (Markdown, không lời dẫn đầu/cuối)
+Dòng tiêu đề dùng đúng tên phiên và ngày ghi trong dữ liệu người dùng (PHIÊN là SÁNG hoặc TRƯA).
 
-# BẢN TIN TỔNG HỢP NỔI BẬT {dd/mm/yyyy}
+# BẢN TIN {PHIÊN} {dd/mm/yyyy}
 
 ---
 
@@ -242,13 +246,14 @@ cách nhau bằng ---, đánh số lại theo thứ tự xuất hiện.)
 """.strip()
 
 
-def build_prompt(articles: list[Article], now: datetime) -> str:
+def build_prompt(articles: list[Article], now: datetime, slot_id: str) -> str:
     lines = []
     for i, a in enumerate(articles, 1):
         when = a.published.strftime("%Y-%m-%d %H:%M UTC") if a.published else "n/a"
         lines.append(f"[#{i}] ({a.source}) {a.title} | {when}")
     return (
-        f"Ngày hôm nay (giờ Việt Nam): {now:%d/%m/%Y}.\n\n"
+        f"Ngày hôm nay (giờ Việt Nam): {now:%d/%m/%Y}.\n"
+        f"Phiên bản tin: {SESSION_NAMES.get(slot_id, '')}.\n\n"
         "<articles>\n" + "\n".join(lines) + "\n</articles>"
     )
 
@@ -353,7 +358,7 @@ def describe_error(exc: BaseException) -> str:
     return f"{exc.__class__.__name__}" + (f" ({code})" if code else "")
 
 
-def generate_edition_markdown(articles: list[Article], now: datetime) -> tuple[str, str]:
+def generate_edition_markdown(articles: list[Article], now: datetime, slot_id: str) -> tuple[str, str]:
     """Trả về (markdown đã gắn link, tên model). Raise RuntimeError nếu mọi model đều thất bại."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -361,7 +366,7 @@ def generate_edition_markdown(articles: list[Article], now: datetime) -> tuple[s
 
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, temperature=0.3)
-    prompt = build_prompt(articles, now)
+    prompt = build_prompt(articles, now, slot_id)
     last_error: BaseException = RuntimeError("Không có model nào được cấu hình")
 
     for model in MODELS:
@@ -447,8 +452,17 @@ def current_slot(now: datetime) -> tuple[str, str]:
     return SLOTS[-1][1], SLOTS[-1][2]
 
 
-def add_edition(data: dict, content: str, model: str, now: datetime) -> None:
-    slot_id, label = current_slot(now)
+def resolve_slot(now: datetime) -> tuple[str, str]:
+    """Phiên của lần chạy này: ưu tiên biến môi trường SLOT, không hợp lệ thì suy ra từ giờ VN."""
+    forced = os.environ.get("SLOT", "").strip().lower()
+    for _, slot_id, label in SLOTS:
+        if forced == slot_id:
+            return slot_id, label
+    return current_slot(now)
+
+
+def add_edition(data: dict, content: str, model: str, now: datetime, slot: tuple[str, str]) -> None:
+    slot_id, label = slot
     date = now.strftime("%Y-%m-%d")
     edition = {
         "id": f"{date}-{slot_id}",
@@ -470,12 +484,25 @@ def add_edition(data: dict, content: str, model: str, now: datetime) -> None:
 def main() -> int:
     now = datetime.now(TZ_VN)
     data = load_data()
+    slot = resolve_slot(now)
+    slot_id = slot[0]
+    edition_id = f"{now:%Y-%m-%d}-{slot_id}"
+
+    # Lịch dự phòng của GitHub (và lần gọi từ Cloudflare) đặt SKIP_IF_EXISTS=true: nếu phiên này đã có
+    # edition thì không gọi Gemini lại. Chạy tay (force) thì luôn tạo lại.
+    if os.environ.get("SKIP_IF_EXISTS", "").lower() == "true" and any(
+        e.get("id") == edition_id for e in data["editions"]
+    ):
+        log.info("⏭️ Edition %s đã có, bỏ qua để không tốn quota Gemini.", edition_id)
+        return 0
+
+    log.info("🗓️ Phiên: %s (%s)", edition_id, "từ biến SLOT" if os.environ.get("SLOT") else "suy ra từ giờ VN")
     try:
         articles = fetch_all()
         if not articles:
             raise RuntimeError("Không lấy được bài nào từ RSS")
         log.info("📰 Tổng cộng %d bài sau khi lọc & khử trùng.", len(articles))
-        content, model = generate_edition_markdown(articles, now)
+        content, model = generate_edition_markdown(articles, now, slot_id)
     except Exception as exc:
         log.error("❌ Cập nhật thất bại: %s", exc)
         data["last_run"] = {
@@ -490,10 +517,10 @@ def main() -> int:
             log.warning("⚠️ Chưa có bản tin nào trong lịch sử để hiển thị thay thế.")
         return 1
 
-    add_edition(data, content, model, now)
+    add_edition(data, content, model, now, slot)
     save_data(data)
     log.info("✅ Đã cập nhật news.json thành công: edition %s (%d edition đang lưu).", data["editions"][0]["id"], len(data["editions"]))
-    log.info("ℹ️ index.html đọc trực tiếp news.json nên không cần build lại.")
+    log.info("ℹ️ site/index.html đọc trực tiếp site/news.json; Cloudflare sẽ deploy khi commit được push lên main.")
     return 0
 
 

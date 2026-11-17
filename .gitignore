@@ -4,16 +4,18 @@ __pycache__/
 *$py.class
 .pytest_cache/
 venv/
+.venv/
 env/
 
 # Secrets
 .env
-.venv/
+.dev.vars
 
-# Build output (workflow tạo ra khi deploy)
-site/
-*.json.tmp
+# Cloudflare / Node
+.wrangler/
+node_modules/
 
 # OS files
 .DS_Store
 Thumbs.db
+*.json.tmp

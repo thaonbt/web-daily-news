@@ -1,12 +1,23 @@
 name: Update daily news
 
 on:
+  # Trigger chính: Cloudflare Worker (xem worker/index.js) gọi workflow_dispatch đúng giờ.
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'Phiên: morning hoặc midday (để trống = tự suy ra theo giờ Việt Nam)'
+        required: false
+        default: ''
+      force:
+        description: "'true' = luôn tạo lại edition của phiên này; 'false' = bỏ qua nếu đã có"
+        required: false
+        default: 'true'
+
+  # Lịch dự phòng của GitHub. Thường chạy trễ vài giờ, nhưng nếu Worker đã tạo edition của phiên đó
+  # thì main.py tự bỏ qua (SKIP_IF_EXISTS), không tốn quota Gemini.
   schedule:
-    # GitHub Actions cron chạy theo UTC (có thể trễ vài phút đến vài chục phút khi tải cao).
-    - cron: '17 22 * * *'   # 05:17 ICT (UTC+7) - Bản sáng
-    - cron: '17 4 * * *'    # 11:17 ICT (UTC+7) - Bản trưa
-  workflow_dispatch:         # chạy tay từ tab Actions
-  # Cố ý KHÔNG có trigger `push`: mỗi lần push sẽ tốn quota Gemini free tier.
+    - cron: '17 22 * * *'   # 05:17 ICT (UTC+7) - phiên sáng
+    - cron: '17 4 * * *'    # 11:17 ICT (UTC+7) - phiên trưa
 
 permissions:
   contents: write
@@ -37,16 +48,20 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Tuỳ chọn: Settings > Variables > Actions > GEMINI_MODELS = "model-chinh,model-du-phong"
           GEMINI_MODELS: ${{ vars.GEMINI_MODELS }}
+          # Phiên lấy từ input (Worker/chạy tay) hoặc từ chính cron kích hoạt, nên không sai khi run bị trễ.
+          SLOT: ${{ inputs.slot || (github.event.schedule == '17 22 * * *' && 'morning') || (github.event.schedule == '17 4 * * *' && 'midday') || '' }}
+          # Lịch dự phòng và lần gọi của Worker (force=false) bỏ qua nếu phiên đã có; chạy tay mặc định tạo lại.
+          SKIP_IF_EXISTS: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.force == 'false') }}
         run: python main.py
 
-      # Lưu news.json về main để lần chạy sau còn lịch sử (bản cũ dùng làm fallback).
+      # Lưu site/news.json về main. Cloudflare tự build và deploy khi có push lên main.
       # Chạy cả khi bước trên fail, vì lúc đó main.py đã ghi last_run=failed vào news.json.
       - name: Commit news.json
         if: ${{ !cancelled() }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add news.json
+          git add site/news.json
           if git diff --cached --quiet; then
             echo "news.json không đổi"
           else
@@ -54,18 +69,3 @@ jobs:
             git pull --rebase origin "${{ github.ref_name }}"
             git push origin "HEAD:${{ github.ref_name }}"
           fi
-
-      # Chỉ publish đúng 3 file cần thiết (không đẩy main.py, workflow... lên site).
-      - name: Prepare site
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir site
-          cp index.html app.js news.json site/
-
-      - name: Deploy to GitHub Pages (gh-pages)
-        if: ${{ !cancelled() }}
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          publish_branch: gh-pages
