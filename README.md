@@ -58,7 +58,7 @@ wrangler.jsonc                      # Worker config (assets, crons, vars)
    - Repository access: **Only select repositories** → `web-daily-news`
    - Permissions → Repository → **Actions: Read and write** (Metadata read is added automatically)
    - Set an expiry and put a reminder to renew it; when it expires the Worker logs HTTP 401.
-4. **Create the Cloudflare Worker from the repo:** Cloudflare dashboard → *Workers & Pages → Create → Import a repository* → pick `web-daily-news`, branch `main`. Keep the deploy command `npx wrangler deploy`. Cloudflare reads `wrangler.jsonc`, so the cron triggers and the `./site` assets are set up automatically.
+4. **Create the Cloudflare Worker from the repo:** Cloudflare dashboard → *Workers & Pages → Create → Import a repository* → pick `web-daily-news`, branch `main`. Keep the deploy command `npx wrangler deploy`. Cloudflare reads `wrangler.jsonc`, so the cron triggers and the `./site` assets are set up automatically. The `name` in `wrangler.jsonc` must match the Worker name you chose in the dashboard (currently `daily-news`). Make sure `wrangler.jsonc` is already on `main` before creating the Worker; if it is missing, Wrangler tries to auto-detect the project (it picks Jekyll because of `_config.yml`) and the build fails. If you hit that, push the file and use *Retry build*.
 5. **Add the token as a Worker secret:** the Worker's *Settings → Variables and Secrets → Add*, type **Secret**, name `GH_DISPATCH_TOKEN`, value = the token from step 3. Redeploy if asked.
 6. **Verify:**
    - Actions tab → *Run workflow* once (leave the defaults). A commit from `github-actions[bot]` should appear and Cloudflare should start a new build.

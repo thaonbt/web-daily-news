@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "web-daily-news",
+  // Phải trùng tên Worker đã tạo trong dashboard Cloudflare, nếu không Workers Builds sẽ báo lỗi.
+  "name": "daily-news",
   "main": "worker/index.js",
   "compatibility_date": "2026-11-01",
 
