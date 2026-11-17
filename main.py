@@ -55,7 +55,9 @@ MODELS = [
     for m in (os.environ.get("GEMINI_MODELS") or DEFAULT_MODELS).split(",")
     if m.strip()
 ]
-RETRY_DELAYS = [20, 60, 120]                 # giây, cho mỗi model
+RETRY_DELAYS = [15, 45]                      # giây, cho mỗi model (tổng thời gian còn bị chặn bởi GEMINI_BUDGET_S)
+GEMINI_TIMEOUT_S = 90                        # timeout MỖI lời gọi; SDK mặc định không timeout nên từng treo 11 phút
+GEMINI_BUDGET_S = 600                        # ngân sách tổng cho cả bước Gemini; hết thì ghi last_run=failed và thoát
 RETRYABLE_CODES = {429, 500, 502, 503, 504}  # lỗi tạm thời -> retry; 400/401/403/404 -> không
 
 # Hai phiên (session) mỗi ngày: sáng và trưa. Edition id = ngày + phiên; chạy lại cùng phiên trong
@@ -364,13 +366,19 @@ def generate_edition_markdown(articles: list[Article], now: datetime, slot_id: s
     if not api_key:
         raise RuntimeError("Chưa cài đặt GEMINI_API_KEY trong Environment Variable!")
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_S * 1000),  # đơn vị: mili giây
+    )
+    deadline = time.monotonic() + GEMINI_BUDGET_S
     config = types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, temperature=0.3)
     prompt = build_prompt(articles, now, slot_id)
     last_error: BaseException = RuntimeError("Không có model nào được cấu hình")
 
     for model in MODELS:
         for attempt in range(len(RETRY_DELAYS) + 1):
+            if time.monotonic() > deadline:
+                raise RuntimeError(f"Hết ngân sách {GEMINI_BUDGET_S}s cho Gemini (lỗi cuối: {describe_error(last_error)})")
             try:
                 log.info("🤖 Đang gửi dữ liệu tới Gemini [%s] (lần thử %d/%d)...", model, attempt + 1, len(RETRY_DELAYS) + 1)
                 resp = client.models.generate_content(model=model, contents=prompt, config=config)
@@ -461,6 +469,19 @@ def resolve_slot(now: datetime) -> tuple[str, str]:
     return current_slot(now)
 
 
+SLOT_START_HOUR = {"morning": 5, "midday": 11}  # giờ VN mà phiên bắt đầu (khớp cron 05:17 và 11:17)
+
+
+def _is_fresh_for_slot(edition: dict, now: datetime, slot_id: str) -> bool:
+    """True nếu edition được tạo từ giờ bắt đầu phiên của hôm nay trở đi."""
+    try:
+        made = datetime.fromisoformat(edition["generated_at"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    start = now.replace(hour=SLOT_START_HOUR.get(slot_id, 0), minute=0, second=0, microsecond=0)
+    return made >= start
+
+
 def add_edition(data: dict, content: str, model: str, now: datetime, slot: tuple[str, str]) -> None:
     slot_id, label = slot
     date = now.strftime("%Y-%m-%d")
@@ -488,13 +509,16 @@ def main() -> int:
     slot_id = slot[0]
     edition_id = f"{now:%Y-%m-%d}-{slot_id}"
 
-    # Lịch dự phòng của GitHub (và lần gọi từ Cloudflare) đặt SKIP_IF_EXISTS=true: nếu phiên này đã có
-    # edition thì không gọi Gemini lại. Chạy tay (force) thì luôn tạo lại.
-    if os.environ.get("SKIP_IF_EXISTS", "").lower() == "true" and any(
-        e.get("id") == edition_id for e in data["editions"]
-    ):
-        log.info("⏭️ Edition %s đã có, bỏ qua để không tốn quota Gemini.", edition_id)
-        return 0
+    # Lịch dự phòng của GitHub (và lần gọi từ Cloudflare) đặt SKIP_IF_EXISTS=true để hai trigger không
+    # tạo trùng. Chỉ bỏ qua khi edition của phiên này được tạo SAU giờ bắt đầu phiên (SLOT_START_HOUR);
+    # edition tạo trước đó (vd. chạy tay lúc 09:45 bị gán nhầm 'midday') không được chặn lần chạy đúng giờ.
+    if os.environ.get("SKIP_IF_EXISTS", "").lower() == "true":
+        existing = next((e for e in data["editions"] if e.get("id") == edition_id), None)
+        if existing and _is_fresh_for_slot(existing, now, slot_id):
+            log.info("⏭️ Edition %s đã có (tạo lúc %s), bỏ qua để không tốn quota Gemini.", edition_id, existing.get("generated_at"))
+            return 0
+        if existing:
+            log.info("♻️ Edition %s có từ %s, trước giờ bắt đầu phiên nên tạo lại.", edition_id, existing.get("generated_at"))
 
     log.info("🗓️ Phiên: %s (%s)", edition_id, "từ biến SLOT" if os.environ.get("SLOT") else "suy ra từ giờ VN")
     try:
