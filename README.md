@@ -63,7 +63,7 @@ wrangler.jsonc                      # Worker config (assets, crons, vars)
 6. **Verify:**
    - Actions tab → *Run workflow* once (leave the defaults). A commit from `github-actions[bot]` should appear and Cloudflare should start a new build.
    - In Cloudflare the Worker's **Settings → Trigger Events** should list both crons; **Observability → Logs** shows each scheduled run.
-7. **Only after steps 1-6 work**, you can delete the old `gh-pages` branch and turn off GitHub Pages. Until then the old Pages site keeps serving the old files.
+7. **Retire GitHub Pages:** the live site is now the Cloudflare URL. In the repo go to **Settings → Pages** and unpublish the site (if its source is `main` / `(root)` it would otherwise render `README.md`, because `index.html` now lives in `site/`). The `gh-pages` branch is no longer updated and can be deleted.
 
 ## Run locally
 
