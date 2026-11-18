@@ -51,10 +51,6 @@ async function dispatchWorkflow(env, slot) {
 export default {
   // Throw khi thất bại để Cloudflare ghi nhận lần chạy lỗi (xem Observability > Logs).
   async scheduled(event, env) {
-    if (event.cron === HEARTBEAT_CRON) {
-      console.log(`heartbeat ${new Date(event.scheduledTime).toISOString()} hasToken=${Boolean(env.GH_DISPATCH_TOKEN)}`);
-      return;
-    }
     const slot = SLOT_BY_CRON[event.cron];
     if (!slot) throw new Error(`Cron không xác định: ${event.cron}`);
     if (!env.GH_DISPATCH_TOKEN) throw new Error("Thiếu secret GH_DISPATCH_TOKEN");
@@ -63,10 +59,6 @@ export default {
 
   // Mọi request HTTP đều trả về file tĩnh; Worker không có endpoint nào để gọi GitHub từ bên ngoài.
   fetch(request, env) {
-    // TẠM THỜI: chỉ báo secret có tồn tại hay không (boolean), không lộ giá trị.
-    if (new URL(request.url).pathname === "/__health") {
-      return Response.json({ hasToken: Boolean(env.GH_DISPATCH_TOKEN) }, { headers: { "Cache-Control": "no-store" } });
-    }
     return env.ASSETS.fetch(request);
   },
 };
