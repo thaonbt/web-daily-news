@@ -10,7 +10,7 @@
 
   // UTC: 22:17 = 05:17 ICT (phiên sáng), 04:17 = 11:17 ICT (phiên trưa).
   // Nếu đổi giờ ở đây, đổi cả SLOT_BY_CRON trong worker/index.js và cron dự phòng trong workflow.
-  "triggers": { "crons": ["17 22 * * *", "17 4 * * *", "*/15 * * * *"] },
+  "triggers": { "crons": ["17 22 * * *", "17 4 * * *"] },
 
   "vars": {
     "GITHUB_REPO": "thaonbt/web-daily-news",

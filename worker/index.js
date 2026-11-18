@@ -11,9 +11,6 @@ const SLOT_BY_CRON = {
   "17 4 * * *": "midday",   // 11:17 ICT
 };
 
-// TẠM THỜI để chẩn đoán: cron này chỉ ghi log (không gọi GitHub). Xóa cùng dòng trong wrangler.jsonc khi xong.
-const HEARTBEAT_CRON = "*/15 * * * *";
-
 const RETRY_DELAYS_MS = [0, 5_000, 20_000];
 
 async function dispatchWorkflow(env, slot) {

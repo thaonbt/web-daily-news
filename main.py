@@ -91,6 +91,10 @@ RSS_SOURCES = {
     "Tuổi Trẻ Thời Sự": "https://tuoitre.vn/rss/thoi-su.rss",
     "CafeF": "https://cafef.vn/home.rss",
     "VnEconomy": "https://vneconomy.vn/rss/home.rss",
+    # TTXVN: trang chỉ có một link RSS chung (vnanet.vn/vi/rss/), không có feed theo chuyên mục nên dùng
+    # Google News giới hạn theo site (cùng cách với Reuters/Bloomberg ở trên). Nếu muốn feed gốc, thử
+    # "https://vnanet.vn/vi/rss/" và xem dòng log của nguồn này.
+    "TTXVN (Vietnam News Agency)": "https://news.google.com/rss/search?q=when:24h+site:vnanet.vn&ceid=VN:vi&hl=vi&gl=VN",
 }
 
 # Log dạng thông điệp thuần (GitHub Actions đã tự gắn timestamp cho từng dòng).
